@@ -1,0 +1,39 @@
+Sun Aug 18 20:28:35 2002
+ 
+IDL Codes Directory: c:\paul\phd\crres\eph_test
+Telemetry Directory: c:\paul\phd\crres\data
+Ephermius Directory: c:\paul\phd\crres\eph
+Results Directory: c:\paul\phd\crres\results
+Events Paramters Directory: c:\paul\phd\crres\events
+Logs Directory: c:\paul\phd\crres\log
+Spline Sigma: 0.1
+Frequency to Remove Spacecraft Phasing: 6.0Hz
+Despike Limit (Points): 40.0
+Despike Limit (Normalized Gradient): 1.0
+ 
+Number Data Files:            3
+ 
+orb1062_2030_2100a.val
+orb1051_0830_0900a.val
+orb1043_1800_2000a.val
+ 
+ 
+Beginning main data processing...
+Data File        1
+File: Orb1043_ 1800_ 2000a.val
+Ephmerius File: c9127415
+Extracting ephmerius information
+ 
+Beginning main data processing...
+Data File        2
+File: Orb1051_ 0830_ 0900a.val
+Ephmerius File: c9127801
+Extracting ephmerius information
+ 
+Beginning main data processing...
+Data File        3
+File: Orb1062_ 2030_ 2100a.val
+Ephmerius File: c9128219
+Extracting ephmerius information
+Sun Aug 18 20:28:36 2002
+Finshed
