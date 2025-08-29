@@ -1,0 +1,46 @@
+pro eph_res,eph_parameters,fil_parameters,Ed_parameters,dat_parameters,ser_parameters,pros_parameters
+eph_parameters=['Julian','UT','XSCECI','YSCECI','ZSCECI','XaSCECI',$
+'YaSCECI','ZaSCECI','REARTHSC','Altitude',$
+'Lat','Lon','Velocity','Localtime','RMAG',$
+'MLAT','MLON','RSM','LatSM','LocaltimeSM',$
+'RGSM','LatGSM','LocaltimeGSM','B','BXECI',$
+'BYECI','BZECI','MLT','SZenith','InvLat',$
+'B100NLat','B100NLon','B100SLat','B100SLon',$
+'Lshell','Bmin','Bminlat','Bminlon','Bminalt',$
+'BconjLat','BconjLon','Bconjalt','XsunECI',$
+'YsunECI', 'ZsunECI', 'XmoonECI','YmoonECI',$
+'ZmoonECI','RAGreenwich','B100NMagField','B100SMagField',$
+'MxDipole','MyDipole','MzDipole','DxDipole',$
+'DyDipole','DzDipole']
+ for ii=0,n_elements(eph_parameters) -1 do $
+ eph_parameters[ii] = '0\'+eph_parameters[ii]+'\eph_menu_event'
+
+
+ dat_parameters=['1\EFIELD','0\ALL E FIELDS\Dat_menu_event','0\EX\Dat_menu_event','0\EY\Dat_menu_event',$
+ '2\EZ\Dat_menu_event','1\BFIELD','0\ALL DB FIELDS\Dat_menu_event','0\DBX\Dat_menu_event','0\DBY\Dat_menu_event',$
+ '0\DBZ\Dat_menu_event','0\ALL B FIELDS\Dat_menu_event','0\BX\Dat_menu_event','0\BY\Dat_menu_event',$
+ '2\BZ\Dat_menu_event','1\SFIELDS','0\ALL FIELDS\Dat_menu_event','0\SX\Dat_menu_event',$
+ '0\SY\Dat_menu_event','2\SZ\Dat_menu_event','1\PC5\Dat_menu_event',$
+ '0\ALL BPC5\Dat_menu_event','0\BXPC5\Dat_menu_event','0\BYPC5\Dat_menu_event',$
+ '0\BZPC5\Dat_menu_event','0\ALL EPCLONG\Dat_menu_event','0\EXPCLONG\Dat_menu_event','0\EYPCLONG\Dat_menu_event',$
+ '2\EZPCLONG\Dat_menu_event',$
+ '0\Z FIELDS\Dat_menu_event','0\CROSSPOWER\Dat_menu_event',$
+ '0\VG\Dat_menu_event','0\ALFVEN VELOCITY\Dat_menu_event','0\Alpha Angle\Dat_menu_event',$
+'0\Ellipticity\Dat_menu_event']
+
+ fil_parameters=['0\New','0\Open','1\Save','0\Ephm Plot',$
+ '0\Ephm Data','0\Val Plot','0\E fields\data_save_event',$
+ '0\B fields\data_save_event','2\S fields\data_save_event','0\Close','0\Exit']
+
+ Ed_parameters=['0\Undo','0\Cut','0\Copy','0\Paste','0\Delete']
+ ;ser_parameters=['0\Time Domain\tim_event','0\Spectral Domain\wdpow_event']
+  ser_parameters=['0\Time Domain\tim_event','0\Spectral Domain\tim_event']
+pros_parameters=['1\Filter','0\Remove Phase Due to Spacecraft\filter_event',$
+'0\Bandpass\filter_event','2\Despike\filter_event','1\Rotation','0\Field Aligned\filter_event',$
+'2\MGSE\filter_event','0\Alpha Angle\filter_event','0\Pc5 B\filter_event',$
+'0\Pc5 E\filter_event',$
+'0\Calculate Ex\filter_event',$
+'0\Calculate time S\filter_event','0\Calculate PhetaSB\filter_event',$
+'0\Calculate spectral Sz\filter_event',$
+'0\Mouse over\filter_event','0\Static Power\filter_event']
+end

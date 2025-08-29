@@ -1,0 +1,24 @@
+pro pc5Etest, Pros5
+common cm_crres,state,cm_eph,cm_val
+common orbinfo,orb,orb_binfile,orb_date
+common lowchoice ,filtords,fieldch,filttype,cut
+
+Ex = cm_val.(1)
+Ey = cm_val.(2)
+Ez = cm_val.(3)
+reszx=smooth(Ex,1001,/EDGE_TRUNCATE)
+reszy=smooth(Ey,1001,/EDGE_TRUNCATE)
+reszz=smooth(Ez,1001,/EDGE_TRUNCATE)
+!p.multi=[0,1,3]
+window,1,xsize=600,ysize=700
+plot,reszx,xstyle=1
+plot,reszy,xstyle=1
+plot,reszz,xstyle=1
+!P.multi=0
+;stop
+
+;cm_val.(18)=reszx
+;cm_val.(19)=reszy
+;cm_val.(20)=reszz
+WIDGET_CONTROL, state.text,SET_VALUE = 'Smoothing of E fields complete !'
+end

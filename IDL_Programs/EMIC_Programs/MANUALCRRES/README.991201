@@ -1,0 +1,327 @@
+
+--------------------------------------------------------------------------
+Release Notes for December 1, 1999:
+
+--------------------------------------------------------------------------
+General Notes:
+
+This is the first release of the CRRES "fiche" program in many years
+and so this release is not well tested.
+
+First, this release is compiled for Solaris 2.7 ONLY.  It will probably
+not work on Solaris 2.6 or earlier.
+
+Bugs:
+
+    1.  The program currently only works on 8-bit graphics displays.
+	The X-Windows graphics code is 10 years old and does not
+	reflect the situation regarding 24-bit systems.  I will continue
+	to work on adding the 24-bit capability.
+
+       
+
+--------------------------------------------------------------------------
+
+Installing the Crres "fiche" program at a remote site:
+-----------------------------------------------------
+
+1.  First, decide where the release will be installed on your local network.
+    In this example, we will assume that you want to install in the directory:
+
+	/disks/software/crres/fiche
+
+    If you already have an existing "fiche" installation in this directory,
+    you should rename:
+
+	/disks/software/crres/fiche
+
+    and recreate it with the commands:
+
+	mkdir /disks/software/crres/fiche
+	chmod a+rx /disks/software/crres/fiche
+
+    Note that the "chmod" command will insure that all users will be able
+    to execute programs from the directory.  They do NOT need to have write
+    permissions to this directory.
+
+2.  The latest version of the CRRES "fiche" program is available via
+    anonymous FTP at:
+
+	polar2.ssl.berkeley.edu
+
+    The release is a modestly-sized TAR file (about 4 MBytes) and can be
+    retrieved from the anonymous site as follows:
+
+    a).   Login as the user who owns directory:
+
+	      /disks/software/crres/fiche
+
+          Then move into this direction:
+
+	      cd  /disks/software/crres/fiche 
+
+    b).   Anonymously FTP into:
+
+	      polar2.ssl.berkeley.edu
+
+    c).   Use "ftp" to bring over the release (the "tar" file and a
+	  "README" file):
+
+              ftp > binary
+
+              ftp > cd /pub/crres
+
+              ftp > get fiche.tar
+
+              ftp > get README
+
+              ftp > quit
+
+    d).   On your local system, you should now see, in directory:
+
+	      /disks/software/crres/fiche
+
+	  the two files:
+
+	      READMD
+	      fiche.tar
+
+	  Unpack the release by "tar":
+
+	      cd  /disks/software/crres/fiche 
+
+	      tar xvf fiche.tar
+
+	  If you wish, you can now remove the "tar" file:
+
+	      rm fiche.tar
+
+    e).   The latest version of "fiche" is now installed on your local network.
+	  Each user interested in running the "fiche" program should now go
+	  to the section entitled:
+
+              User Setup for the CRRES "fiche" program:
+
+	  to set up the environment variables to successfully run the program.
+
+--------------------------------------------------------------------------
+
+User Setup for the CRRES "fiche" program:
+----------------------------------------
+
+As of 1999, "fiche" requires each user to set several environment variables to
+be able to run the program.   The following is a description of these
+environment variables:
+
+ 1.  CRRES_FICHE_BIN
+
+	 This is the location of program as installed locally in the section
+	 entitled:
+	
+             Installing the Crres "fiche" program at a remote site:
+
+	 In the example given in that section, the user should, near the end of
+	 their ".cshrc" file, put the 2 lines:
+
+	     setenv CRRES_FICHE_BIN  /disks/software/crres/fiche 
+
+	     set path=($path $CRRES_FICHE_BIN)
+
+         This will ensure that when they run the script:
+
+	     runfiche
+	 
+	 that starts the program, their environment will be able to find it.
+
+
+ 2.  CRRES_DATA_DIR
+
+	 This indicates the directory location of the CRRES data files.
+	 For instance, if your local directory of CRRES data is:
+
+	      /disks/data/crres
+
+	 you should set this variable, in you ".cshrc" file, with the line:
+
+	     setenv  CRRES_DATA_DIR  /disks/data/crres
+
+ 3.  FICHEPRINTER
+
+	 This indicates the name of your local printer - it should be a
+	 PostScript printer as that is the printer file format that
+	 "fiche" outputs.
+
+	 For instance, if your local PostScript printer is named:
+
+	     hplj1
+
+	 your ".cshrc" file should contain the line:
+
+	     setenv  FICHEPRINTER  hplj1
+
+	 When you invoke the "print" button in "fiche", this will be the
+	 printer that output will be sent to.
+
+ 4.  FICHE_CONFIGS_PATH
+
+	 This indicates the directory location of your personal "fiche"
+	 plot/datafile configuration file(s).  In particular, you will
+	 have a file in this directory, called:
+
+	     fiche.cfg
+
+	 that contains all of the plot/datafile configurations that you
+	 save from the "fiche" program.
+
+	 This is a change from pre-1999 versions of "fiche" which utilized
+	 the same "fiche.cfg" for each installation of "fiche" and required
+	 that the program be run from the $CRRES_FICHE_BIN directory.
+	 This is no longer true.  No user should now run the program from
+	 $CRRES_FICHE_BIN and each will have their own set of plot/datafile
+	 configurations (in their individual $FICHE_CONFIGS_PATH directory).
+
+	 The user must have both Read and Write permissions to the
+
+             FICHE_CONFIGS_PATH
+
+	 directory and, preferably, should own it.
+
+	 As an example, if your home directory is:
+
+	       /disks/home/user1
+
+	 and you want to store your "fiche" plot/datafile configuration
+	 information in the directory:
+
+	       /disks/home/user1/fiche_configs
+
+	 then you should, in your ".cshrc" file, have the line:
+
+	     setenv  FICHE_CONFIGS_PATH  /disks/home/user1/fiche_configs
+
+	 Since "/disks/home/user1" is your home directory, you could, in
+	 this case, have also used the line:
+
+	     setenv  FICHE_CONFIGS_PATH  $HOME/fiche_configs
+
+	 but it is not required to make "FICHE_CONFIGS_PATH" an immediate
+	 sub-directory of your home directory.
+
+	 Also note that it is not required that you run "fiche" from your
+	 FICHE_CONFIGS_PATH directory.  However, you should, of course,
+	 run the program from a directory that you have Read/Write permissions
+	 to, as the program does output some information to files called:
+
+	     stdout
+	     stderr
+
+ 5.  Initialize your file:
+
+	     $FICHE_CONFIGS_PATH/fiche.cfg
+
+     Even for the first time that you invoke the "fiche" program,
+     you must have a correctly formatted version of the file:
+
+	     $FICHE_CONFIGS_PATH/fiche.cfg
+
+     You can get such a file in one of two ways:
+
+     a)  If there are no other "fiche.cfg" files around at your site,
+	 or if you really want to start from scratch, you can get a
+	 nearly empty, but correctly formatted, prototype from the file:
+
+             CRRES_FICHE_BIN/fiche.cfg.blank
+
+         Copy this file into:
+
+	     $FICHE_CONFIGS_PATH/fiche.cfg
+
+         with the commands:
+
+	     cp  $CRRES_FICHE_BIN/fiche.cfg.blank \
+		 $FICHE_CONFIGS_PATH/fiche.cfg
+
+	     cp  $CRRES_FICHE_BIN/blank.OPcfg  $FICHE_CONFIGS_PATH
+
+         The "blank.OPcfg" file goes with the "blank" configuration that
+	 is inside the "fiche.cfg" file.  You do not need to know what
+	 these ".OPcfg" files are - they are created and used as needed by
+	 "fiche" and are stored in the "FICHE_CONFIGS_PATH" directory.
+
+	 They may be one or two configuration other than "blank" in
+	 your new "fiche.cfg" file - you should probably ignore them.
+
+	 When you bring up "fiche", and look for plot/datafile configurations
+	 to invoke, you can start with the "blank" configuration (which in
+	 fact may not really be blank) and add/delete plots as needed and
+	 then rename this configuration (so the "blank" configuration will
+	 still exist in the configuration list).   The "fiche" program can
+	 have as many of these configurations as you wish.  They are stored
+	 in the file:  
+
+	     $FICHE_CONFIGS_PATH/fiche.cfg
+
+     a)  You can copy an exising "fiche.cfg" into your FICHE_CONFIGS_PATH
+	 directory.   If you do this, you should also copy all of the
+	 ".Opcfg" files from that directory in FICHE_CONFIGS_PATH.  For
+	 instance, if you are copying "fiche.cfg" from directory:
+
+	       /disks/old/fiche_stuff
+
+	 then you should do it by issuing the following 2 commands:
+
+	     cp  /disks/old/fiche_stuff/fiche.cfg  $FICHE_CONFIGS_PATH
+	     cp  /disks/old/fiche_stuff/*.OPcfg  $FICHE_CONFIGS_PATH
+
+--------------------------------------------------------------------------
+
+Running the program:
+-------------------
+
+1.  Once "fiche" has been installed locally and once you have set up
+    your environment as related in:
+
+        User Setup for the CRRES "fiche" program:
+
+    you should be able to start the program, from anywhere that you
+    have Read/Write permissions, with the command:
+
+	runfiche
+
+2.  The "fiche" window will appear with a list of plot/datafile
+    configurations.   Select one of these and you should either
+    see data plots or perhaps an error message indicating that
+    the orbit file in the configuration is not avaiable (i.e. not
+    in your:
+
+       CRRES_DATA_DIR
+
+    directory.   You can reconfigure this configuration with the
+    "FileName" entry in the configuration menu.  A list of the
+    available files will appear.
+
+3.  There are a lot of things that you can do - the best thing is
+    to test the program and learn how to add and delete plots in
+    a configuration, zoom in and out, change the number of plots
+    per page, etc.
+
+4.  Be aware that you select the "current" plot by moving the Up
+    and Down arrow keys.  The "current" plot will be bordered by
+    a thick black rectangle.
+
+5.  When you "Delete" a plot, the plot that is deleted is the
+    "current" plot, as selected in step (4).
+
+6.  When you "Add" a plot, the plot that is added after the
+    "current" plot, as selected in step (4).
+
+7.  If there are many plots in the configuration, you can move up
+    and down a page at a time by pressing the "PgUP" and "PgDn"
+    keys.
+
+8.  To "pop" off menus, hit the ESCAPE key.   You can exit the
+    program by hitting ESCAPE as often as needed.  Sometimes, just
+    before exiting, you will have to indicate whether you want your
+    changes to the current configuration to be accepted (in the
+    "fiche.cfg" file).
+

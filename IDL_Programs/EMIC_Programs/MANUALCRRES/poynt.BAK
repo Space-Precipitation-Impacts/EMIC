@@ -1,0 +1,32 @@
+Pro Poynt,cm_eph,cm_val,state
+;
+E_x=cm_val.(1)
+E_y=cm_val.(2)
+E_z=cm_val.(3)
+B_x=cm_val.(4)
+B_y=cm_val.(5)
+B_z=cm_val.(6)
+S_x=cm_val.(11)
+S_y=cm_val.(12)
+S_z=cm_val.(13)
+;Calculation of Poynting flux: Note that all values are in units of microWatts
+;
+ piI = 3.1415926535898
+ u = 4*PiI
+for i=0, n_elements(cm_val.(0)) -1 do $
+	begin
+    	S_z[i] = 10.0*(1.0/u)*(E_x[i]*B_y[i] - B_x[i]*E_y[i])
+    	S_x[i] = 10.0*(1.0/u)*(E_y[i]*B_z[i] - B_y[i]*E_z[i])
+    	S_y[i] = 10.0*(1.0/u)*(E_z[i]*B_x[i] - B_z[i]*E_x[i])
+endfor
+cm_val.(11)=S_x
+cm_val.(12)=S_y
+cm_val.(13)=S_z
+E_x=0.0
+E_y=0.0
+E_z=0.0
+B_x=0.0
+B_y=0.0
+B_z=0.0
+
+end
