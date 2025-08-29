@@ -1,0 +1,46 @@
+Pro xy_plots
+ct =long(0)
+ct2 =long(0)
+mlat =fltarr(252)
+poynt =fltarr(283)
+;poynts=float(0)
+text=' '
+openr,u,'Book1.val',/get_lun
+;readf,u,text
+while not eof(u) do $
+begin
+readf,u,poynts
+;print,text
+poynt[ct]=poynts
+ ct = ct + 1
+end
+close,u
+free_lun,u
+print,max(poynt)
+stop
+print,text
+print,'ct=',ct
+Y = [0, 1, 0, -1, 0]
+X = [-1, 0, 1, 0, -1]
+USERSYM, X, Y,/fill
+
+
+FName=DIALOG_PICKFILE(title='Select File', FILTER = '*.*',/WRITE,/NOCONFIRM)
+set_plot,'ps'
+device,filename=FName,yoffset=3, ysize=13
+!P.charsize=1.0
+!Y.style=3
+!P.ticklen=0.02
+
+;!x.charsize=1
+plot,mlat,poynt,psym=8,SYMSIZE=0.5,xstyle=4,ystyle=4,title='Energy Flux versus MLAT for Events f > f!dHe+!n',$
+xtitle='Magnetic Latitude (!Uo!n)',ytitle='EM Energy Flux (uW/m!U2!n)',yrange=[-40,20];/nodata
+AXIS,0,0,xAXis=0,xstyle=1
+AXIS, 0, 0, yAx=0,ystyle=1
+;print,'ct2=',ct2
+;stop
+!P.charsize=1.0
+!Y.style=3
+!P.ticklen=0.04
+device,/close
+end

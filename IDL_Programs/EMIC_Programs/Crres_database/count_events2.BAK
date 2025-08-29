@@ -1,0 +1,48 @@
+Pro count_events2
+ct =long(0)
+ct2 =long(0)
+
+;openr,u,'duration.val',/get_lun
+;while not eof(u) do $
+;begin
+;readf,u,text
+; if fix(text) LT 300.0 then $
+; begin
+; ;print,text
+; ct = ct + 1
+; end
+; ;if text GT 10.0 then $
+; ct2 =ct2 + 1
+;end
+;close,u
+;print,'ct=',ct
+;print,'ct2=',ct2
+;print,float(ct)/float(ct2)*100.
+text=float(0)
+ctt=long(0)
+text2=float(0)
+
+openr,u,'fge.val',/get_lun
+while not eof(u) do $
+begin
+readf,u,text;,text2
+ ct2 =ct2 + 1
+ if text GT 0.25 then $ ;and text LT 0.3 then $
+ begin
+ ctt=ctt+1
+ ;if abs(text) GT 10.0 then $
+;begin
+print,text,'   ',ct2 ;,text2
+; ct = ct + 1 ;else $
+;end
+ ;ctt=ctt+1
+ end
+ ;if text GT 10.0 then $
+
+end
+close,u
+print,'ct=',ct
+print,'ct2=',ct2
+print,'ctt',ctt
+;print,float(ct)/float(ctt)*100.
+end
