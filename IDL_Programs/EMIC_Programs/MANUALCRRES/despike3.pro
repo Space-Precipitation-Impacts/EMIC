@@ -1,0 +1,130 @@
+; Program to DeSpike Time Series Data
+;
+;  C Waters Sept 1995
+;
+Function Tim,Value
+ mSec=long(Value)
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ Return,String(hr,mnf,secf,$
+  Format="(I2.2,':',I2.2,':',I0)")
+end
+;
+; Main
+pro Despike3,cm_eph,cm_val,state
+common orbinfo,orb,orb_binfile,orb_date
+;stop
+Strt=1
+Strt=Strt-1
+numcmv=16
+lim=0.5
+leng = n_elements(cm_val.(numcmv))
+NPnts=Leng
+XDat=FltArr(NPnts)
+YPDat=cm_val.(numcmv)
+XPDat=cm_val.(numcmv)
+
+;XPDat=DblArr(Leng)
+;YPDat=DblArr(Leng)
+
+;
+; Read in Data Segment
+;
+;For i=0,Leng-1 do $
+;XPDat(i)=XDat(Strt+i)
+;DTrend,XPDat,Leng
+ind='index'
+vl='value'
+openw,uu,'Orb'+STRING(orb)+'despiked1.val',/get_lun
+printf,uu,'Orbit: '+STRING(orb)+' '+string(orb_date)
+printf,uu,'   '+string(ind)+'      '+string(vl)
+
+numn = long(2000)
+j = fix(leng/numn)
+
+For i=long(0),long(j)-long(1) do $
+Begin
+temp_xpdat = xpdat[long(i*numn):long(i*numn+numn-long(1))]
+;stop
+;plot,temp_xpdat
+tt = temp_xpdat
+	for ii = 1,numn-2 do $
+		begin
+			grad = abs((temp_xpdat[ii] - mean(temp_xpdat))/mean(temp_xpdat))
+			;print,grad
+			;stop
+				if abs(temp_xpdat[ii]) GE lim then $
+					begin
+
+						new_xpdat=mean(temp_XPDat)
+						temp_xpdat[ii] = new_xpdat
+				end
+;stop
+	end
+ xpdat[i*numn:i*numn+numn-1] = temp_xpdat
+end
+
+;if j GE 41 and j LE n_elements(XPDat)-41 then $			;
+;			begin
+;        	XDiff=abs((ABS(XPDat(i+1)/max(XPdat))-abs(Xpdat(i)/max(xpdat))))*100.
+
+;			sumnbrplus=total(XPDat[j:j+40]);XPDat[j+1]+XPDat[j+2]+XPDat[j+3]+XPDat[j+4]
+;			sumnbrminus=total(XPDat[j-40:j]);XPDat[j-1]+XPDat[j-2]+XPDat[j-3]+XPDat[j-4]
+			;print,i,YPDat(i)
+;			totnbr=(sumnbrplus+sumnbrminus)/40.0
+			;totnbr=(sumnbrplus)/8.0
+
+
+;			YPdat(i-1)=totnbr
+;stop
+;			cm_val.(numcmv)[i-1]=YPDat(i-1)
+			;cm_val.(numcmv)[i]=3.0
+;			print,i,YPDat(i)
+;			print,i,XPDat(i)
+;			printf,uu,i,XPDat(i)
+;		end ;else $
+			;begin
+			;YPDat(i)=XPDat[0:9]/10.0
+			;print,i,YPDat(i)
+			;printf,uu,i,XPDat(i)
+			;cm_val.(numcmv)[i]=total(YPDat(i))/10.0
+			;cm_val.(numcmv)=xpdat
+;			stop
+		;end
+;	end
+;End
+Free_lun,uu
+!P.Multi=[0,1,2]
+window,0,xsize=500,ysize=500
+;!Y.Range=[-100,100]
+;!X.Range=[Min(T),Max(T)]
+Plot,cm_val.(0),YPDat,TiTle='Original',XTitle='Time (UT)',$
+ YTitle='Amplitude',XStyle=1,ystyle=1,XTickFormat='XTLab'
+;!Y.Range=[-100,100]
+Plot,cm_val.(0),cm_val.(numcmv),Title='Despiked',XTitle='Time (UT)',$
+ YTitle='Amplitude',XStyle=1,ystyle=1,XTickFormat='XTLab'
+!P.Multi=0
+;YPdat=0.0
+;XPdat=0.0
+;XDiff=0.0
+;FName=''
+;Print,'Enter OutPut File Name : '
+;Read,FName
+;OpenW,u,FName,/Get_Lun
+;If (IFmt EQ 1) Then $
+; PrintF,u,Format='(1x,A4,5I5,1x,2F5.1,I5)',$
+;  StaL,Year,Month,Day,Hr,Mn,Sc,SInt,Leng
+;If (IFmt EQ 2) Then $
+; PrintF,u,Format='(1x,A4,4I5,1x,2F5.1,I5)',$
+;  StaL,Year,Day,Hr,Mn,Sc,SInt,Leng
+; For i=0,Leng-1 do $
+;  PrintF,u,XPDat(i)
+ Free_Lun,uu
+;End
+Print,'Finished.'
+;stop
+End

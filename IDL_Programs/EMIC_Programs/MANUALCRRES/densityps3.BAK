@@ -1,0 +1,463 @@
+Function XXTLab,Value			;Function to format x axis into hours:minutes:seconds.frac
+ mSec=long(Value)
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+
+
+ Return,String(hr,mnf,secf,$
+  Format="(I2.2,':',I2.2,':',I2.2)")
+end
+Pro fin,valu,index
+common eph_values,eltimlon,elden,ind
+common eph_values2,mlt,mlat,lshell
+ind=where(long(valu) EQ eltimlon,count)
+if ind[0] EQ -1 then $
+begin
+indx=where(long(valu) LT eltimlon,count)
+;print,indx
+indxx=where(long(valu) GT eltimlon,count)
+;print,'Great',indxx
+print,eltimlon(indx[0]),valu,eltimlon(indxx[0])
+timold=[eltimlon(indx[0]),eltimlon(indxx[0])]
+timtem=[eltimlon(indx[0]),valu,eltimlon(indxx[0])]
+lshelltem=[lshell(indx[0]),lshell(indxx[0])]
+mlattem=[mlat(indx[0]),mlat(indxx[0])]
+mlttem=[mlt(indx[0]),mlt(indxx[0])]
+inter_lshell=interpol(lshelltem,timold,timtem)
+inter_mlt=interpol(mlttem,timold,timtem)
+inter_mlat=interpol(mlattem,timold,timtem)
+
+;stop
+end else $
+begin
+;stop
+inter_lshell=[0,lshell[ind[0]],0]
+inter_mlt=[0,mlt[ind[0]],0]
+inter_mlat=[0,mlat[ind[0]],0]
+end
+
+;begin
+;stop
+;inter_lshell=interpol(lshelltem,lshell[ind[0]],timtem)
+;inter_mlt=interpol(mlttem,mlt[ind[0]],timtem)
+;inter_mlat=interpol(mlattem,mlat[ind[0]],timtem)
+;end
+
+;new_tim=lonarr(n_elements(eltimlon)+1)
+;new_tim[0:n_elements(eltimlon)-1]=eltimlon
+;new_tim[n_elements(eltimlon)]=
+;valu;'hello'
+if index EQ 0 then $
+begin
+xyouts,0,1500,String(mlt[90],Format="(8X,F6.2)"),/device
+xyouts,0,1000,String(lshell[90],Format="(8X,F6.2)"),/device
+xyouts,0,500,String(mlat[90],Format="(8X,F6.2)"),/device
+end
+
+if index EQ 1 then $
+begin
+xyouts,0,1500,String(inter_mlt[1],Format="(28X,F6.2)"),/device
+xyouts,0,1000,String(inter_lshell[1],Format="(28X,F6.2)"),/device
+xyouts,0,500,String(inter_mlat[1],Format="(28X,F6.2)"),/device
+end
+
+if index EQ 2 then $
+begin
+xyouts,0,1500,String(inter_mlt[1],Format="(48X,F6.2)"),/device
+xyouts,0,1000,String(inter_lshell[1],Format="(48X,F6.2)"),/device
+xyouts,0,500,String(inter_mlat[1],Format="(48X,F6.2)"),/device
+end
+
+if index EQ 3 then $
+begin
+xyouts,0,1500,String(inter_mlt[1],Format="(68X,F6.2)"),/device
+xyouts,0,1000,String(inter_lshell[1],Format="(68X,F6.2)"),/device
+xyouts,0,500,String(inter_mlat[1],Format="(68X,F6.2)"),/device
+end
+
+
+if index EQ 4 then $
+begin
+xyouts,0,1500,String(mlt[1500],Format="(88X,F6.2)"),/device
+xyouts,0,1000,String(lshell[1500],Format="(88X,F6.2)"),/device
+xyouts,0,500,String(mlat[1500],Format="(88X,F6.2)"),/device
+end
+
+;,$
+	;val_inter_eph[0,nn[2]],val_inter_eph[0,n_elements(val_inter_eph[0,*])-1],$
+	;Format="(8X,F6.2,17X,F6.2,16X,F6.2,17X,F6.2)"),/device
+	;xyouts,0,50,String(val_inter_eph[2,0],val_inter_eph[2,nn[1]],$
+	;val_inter_eph[2,nn[2]],val_inter_eph[2,n_elements(val_inter_eph[2,*])-1],$
+	;Format="(8X,F6.2,17X,F6.2,16X,F6.2,17X,F6.2)"),/device
+	;xyouts,0,30,String(val_inter_eph[1,0],val_inter_eph[1,nn[1]],$
+	;val_inter_eph[1,nn[2]],val_inter_eph[1,n_elements(val_inter_eph[1,*])-1],$
+	;Format="(8X,F6.2,17X,F6.2,16X,F6.2,17X,F6.2)"),/device
+
+end
+
+Function XXTLab3,Axis,Index,Value			;Function to format x axis into hours:minutes:seconds.frac
+fin,value,index
+mSec=long(Value)
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ Return,String(hr,mnf,$
+  Format="(I2.2,':',I2.2)")
+end
+
+Function XXTLab2,Value			;return hours:minutes:seconds.frac in milliseconds
+ hr=long(strmid(Value,0,2))
+ mnf=long(strmid(Value,3,2))
+ secf=long(strmid(Value,6,2))
+ hr=hr*3600.
+ mnf=mnf*60.
+ Return,long((hr+mnf+secf)*1000.)
+end
+
+;Pro alfven_velocity,cm_eph,cm_val,state,Dat5
+Pro densityps2,cm_eph,cm_val,state,Dat5
+common dens,val_inter_dens
+COMMON DENS_ALF_PHA, alf_vel,phase_vel
+common orbinfo,orb,orb_binfile,orb_date
+common eph_values,eltimlon,elden,ind
+common eph_values2,mlt,mlat,lshell
+PI=3.14159265359
+constu=6.32455532034
+u = 4*PI
+
+;widget_control,group.cuttoff,get_value=cut
+;widget_control,group.cuttoff1,get_value=cut1
+;widget_control,group.cuttoff2,get_value=cut2
+;widget_control,group.cuttoff3,get_value=cut3
+
+cut=0.8;float(cut[0])
+cut1=0.15;float(cut1[0])
+cut2=0.05;float(cut2[0])
+cut3=0.5;float(cut3[0])
+;print,cut
+;print,cut1
+;print,cut2
+;print,cut3
+;stop
+;Print,'hello'
+path='C:\paul\Phd\crres\density\'
+orb='923'
+
+count=0L
+cd,path;strmid(path,0,strlen(path)-strlen(orb)-4)+'density\'
+Openr,uden,'Orb0923a.den',/get_lun
+text=''
+readf,uden,text
+readf,uden,text
+While not eof(uden) do $
+Begin
+ ReadF,uden,text
+;stop
+count=count+1
+endwhile
+Point_Lun,uden,0
+;stop
+readf,uden,text
+readf,uden,text
+readf,uden,text
+elden=fltarr(count-2)
+eltim=strarr(count-2)
+for i=0,count-3 do $
+begin
+ ReadF,uden,text
+; stop
+ eltim[i] = strmid(text(0),15,8)
+ elden[i] = float(strmid(text(0),55,8))
+ end
+free_lun,uden
+;cd,strmid(path,0,strlen(path)-strlen(orb)-6)
+;plot,elden
+;*************************************************************
+;
+;timstr1=XXTlab(cm_val.(0)[0])
+;timstr2=XXTlab(cm_val.(0)[n_elements(cm_val.(0))-1])
+
+
+eltimlon=lonarr(n_elements(eltim))
+;*************************************************************
+for i=0,n_elements(eltim)-1 do $
+;if fix(strmid(eltim(i),0,2)) GE 0 and fix(strmid(eltim(i),0,2)) LT 1 then $
+;begin
+;		addtim='24:00:00'
+;		addtimlon=XXTLab2(addtim)
+;		eltimlon[i]=long(XXTLab2(eltim[i])+addtimlon)
+;end else $
+eltimlon[i]=XXTLab2(eltim[i])
+;for i=0,n_elements(eltim)-1 do $
+;eltimlon[i]=XXTLab2(eltim[i])
+
+;ttt=cm_val.(0)
+UT=eltimlon
+;
+;
+;*************************************************************
+;**********************************************************************************
+;Beginning of Ephermius interpolation routines
+;Data in *val files >> data in *0ep files
+;
+;**********************************************************************************
+;**********************************************************************************
+;Search through *0ep and count i for which (val.time[0] <= eph.time <= val.time[max])
+;
+;  print,'event begin time: ',timstr1
+;print,'event end time: ',timstr2
+;print,'density begin time: ',eltim[0]
+;print,'density end time: ',eltim[n_elements(eltim)-1]
+;print,'new begin time: ',XXTLab(new_tims[0])
+;print,'new end time: ',XXTLab(new_tims[i-1])
+;stop
+;*******************************************
+;eph.lshell=cm_eph.(34)
+;eph.mlat=cm_eph.(15)
+;eph.mlt=cm_eph.(27)
+
+B=interpol(cm_eph.(23),cm_eph.(1),eltimlon)
+Lshell=interpol(cm_eph.(34),cm_eph.(1),eltimlon)
+mlat=interpol(cm_eph.(15),cm_eph.(1),eltimlon)
+mlt=interpol(cm_eph.(27),cm_eph.(1),eltimlon)
+
+;*******************************************
+;plot,eltimlon,elden,xstyle=1,title='Orbit Densities',yrange=[0,50],xtickformat='XXTLab3',$
+;ytitle='Electron Densities (cm!U2!n)',xrange=[eltimlon[000],eltimlon[1200]],xtitle='UT'
+
+;stop
+
+;plot,eltimlon,B,xstyle=5,xtickformat='XTLab',title='Orbit 926 B field',$
+;ytitle='Magnetic Amplitude (nT)';,xtitle='UT'
+
+;*************************************************************************
+;Alfven velocity calc
+
+hyd_mass=1.673*10.0^(-27)				;Hydrogen mass (kg)
+
+denval=elden*1000000.*hyd_mass	;Convert densities to (kg/metres^3)
+
+
+alf_vel=(B*10.^(-9))/((4.0*PI*0.0000001*denval)^(0.5)) ;Alfven Velocity (m/s)
+;
+;*************************************************************************
+;Phase Velocity Calc
+;Heavy ion ratios (H+:He+) = (0.75:0.25)
+;
+cycconst=0.0963542
+freq_ev=cut3								;Set event freq to 1.5Hz
+;stop
+;e_ch=1.6*10.0^(-19)						;Electronic charge
+
+;hyd_mass=1.673*10.0^(-27)					;Hydrogen mass
+
+freq_hyd=[cycconst*B]/(2.*PI)				;Hydrogen cyclotron frequency
+
+vel_c=300000000.0							;Light speed (m/s)
+
+Hel_Hyd_mass=4.00260
+
+sum_hyd=[cut*denval/hyd_mass*vel_c^2.0]/[alf_vel^2.0*(1.0-freq_ev/freq_hyd)]
+sum_hel=[cut1*denval/hyd_mass*vel_c^2.0]/[alf_vel^2.0*(1.0/(Hel_Hyd_mass-freq_ev/freq_hyd))]
+;stop
+phase_vel= vel_c/([1.+sum_hyd+sum_hel]^(0.5))
+;stop
+;!P.multi=0
+;window,1,xsize=500,ysize=500
+
+ ; LoadCT,0;17
+ ;TVLCT,r,g,b,/get
+ ;r(127)=255
+ ;g(127)=255
+ ;b(127)=255
+ ;r(128)=255
+ ;g(128)=255
+ ;b(128)=255
+ ;r(126)=255
+ ;g(126)=255
+ ;b(126)=255
+
+ ;for ii=0,127 do $
+ ; begin
+ ;  r(255-ii)=128+ii
+ ;  g(255-ii)=128+ii
+ ;  b(255-ii)=128+ii
+ ;end
+ ;tvlct,r,g,b
+; ERASE,color=256
+;window,0,xsize=700,ysize=700
+set_plot,'ps'
+device,filename='c:\paul\phd\crres\test.ps',yoffset=3, ysize=20
+!P.multi=[0,1,2]
+plot,eltimlon,elden,xstyle=1,title='Orbit 923 Electron Densities',yrange=[0,200],xtickformat='XXTLab3',$
+ytitle='Electron Densities (cm!U-3!n)',xticks=4,xrange=[eltimlon[90],eltimlon[1500]],$
+ymargin=[3.5,0]
+;*************************************************************************
+;Oplot EMIC events.
+;
+xrr=lonarr(4041)
+yrr=fltarr(4041)
+
+for ii=0,4040 do $
+begin
+xrr[ii]=41497000
+yrr[ii]=ii/30
+end
+oplot,xrr,yrr,LINESTYLE=2
+
+;for ii=0,4040 do $
+;begin
+;xrr[ii]=41434000
+;end
+;oplot,xrr,yrr,LINESTYLE=1
+
+for ii=0,4040 do $
+begin
+xrr[ii]=41583000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=41739000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=41902000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=42033000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=42102000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=42394000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=42754000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=43273000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=43639000
+end
+oplot,xrr,yrr,LINESTYLE=2
+
+;*************************************************************************
+
+;fin,vvl,eltimlon
+
+plot,eltimlon,alf_vel/1000.,ytitle='Va & Vp (km/s)',xstyle=1,xticks=4,xtickformat='XTLab',$
+xrange=[eltimlon[90],eltimlon[1500]],title='Group and Phase Velocities',$
+ymargin=[7.5,0];,yrange=[0,2000.],YSTYLE=1,xticks=3,psym=2,title='Velocities';,XMARGIN=1.0
+
+oplot,eltimlon,phase_vel;,xstyle=9,ytitle='Va (km/s)',xtickformat='XTLab',title='Alfven Velocity',$
+;ymargin=[10.5,-4];,xrange=[cm_val.(0)[0],max(cm_val.(0))],YSTYLE=1,xticks=3;,XMARGIN=1.0
+;*************************************************************************
+;Oplot EMIC events.
+;
+xrr=lonarr(4041)
+yrr=fltarr(4041)
+
+for ii=0,4040 do $
+begin
+xrr[ii]=41497000
+yrr[ii]=ii
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=41583000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=41739000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=41902000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=42033000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=42102000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=42394000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=42754000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=43273000
+end
+oplot,xrr,yrr,LINESTYLE=2
+for ii=0,4040 do $
+begin
+xrr[ii]=43639000
+end
+oplot,xrr,yrr,LINESTYLE=2
+
+; *************************************************************************
+!P.charsize=1.00
+!P.ticklen=0.02
+	xyouts,[20,20,20,20],[2100,1500,1000,500],['UT','MLT','L','MLAT'],/device
+	xyouts,3200,18000,'<--Plasmapause',/device
+	xyouts,8300,17200,'1 2  3 4    5',/device
+	xyouts,4400,14000,'Plasma Island-->',/device
+	xyouts,4400,8000,'Va',/device
+	xyouts,4400,3000,'Vp',/device
+
+	;val_inter_eph[0,nn[2]],val_inter_eph[0,n_elements(val_inter_eph[0,*])-1],$
+	;Format="(8X,F6.2,17X,F6.2,16X,F6.2,17X,F6.2)"),/device
+	;xyouts,0,50,String(val_inter_eph[2,0],val_inter_eph[2,nn[1]],$
+	;val_inter_eph[2,nn[2]],val_inter_eph[2,n_elements(val_inter_eph[2,*])-1],$
+	;Format="(8X,F6.2,17X,F6.2,16X,F6.2,17X,F6.2)"),/device
+	;xyouts,0,30,String(val_inter_eph[1,0],val_inter_eph[1,nn[1]],$
+	;val_inter_eph[1,nn[2]],val_inter_eph[1,n_elements(val_inter_eph[1,*])-1],$
+	;Format="(8X,F6.2,17X,F6.2,16X,F6.2,17X,F6.2)"),/device
+!P.charsize=1.0
+
+
+;eph_inter_win,cm_eph,cm_val,state,Dat5
+!P.multi=0;
+device,/close
+set_plot,'win'
+stop
+;*************************************************************************
+
+end

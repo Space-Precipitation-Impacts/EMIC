@@ -1,0 +1,31 @@
+ name of header and data files:   CRRESEPH                                      
+ date files created:                     6-FEB-92                               
+ record length of data file, in bytes:         56                               
+ number of columns:                            13                               
+ number of rows:                           120643                               
+ flag for missing data:                   0.10E+06                              
+                                                                                
+  #     name          units         source                       type  loc      
+----------------------------------------------------------------------------    
+ 1     TIME          SECONDS       UNIVERSAL TIME                  T    0       
+ 2     CRE ORB       INTEGER       CRRES ORBIT NUMBER              R    8       
+ 3     CRE MLT       HR            CRRES MAGNETIC LOCAL TIME       R    12      
+ 4     CRE MLAT      DEG           CRRES MAGNETIC LATITUDE         R    16      
+ 5     CRE R         KM            CRRES SATELLITE RADIUS          R    20      
+ 6     CRE L         RE            CRRES L - SHELL                 R    24      
+ 7     CRE X         KM            SATELLITE POSTION; ECI X        R    28      
+ 8     CRE Y         KM            SATELLITE POSTION; ECI Y        R    32      
+ 9     CRE Z         KM            SATELLITE POSTION; ECI Z        R    36      
+ 10    CRE NLAT      DEG           100 KM FIELD LINE FTPRNT NLAT   R    44      
+ 11    CRE NLONG     DEG           100 KM FIELD LINE FTPRNT NLONG  R    40      
+ 12    CRE SLAT      DEG           100 KM FIELD LINE FTPRNT SLAT   R    52      
+ 13    CRE SLONG     DEG           100 KM FIELD LINE FTPRNT SLONG  R    48      
+                                                                                
+ NOTES:                                                                         
+                                                                                
+ Start time = 19-AUG-90 11:30:00.000                                            
+                                                                                
+ End time   = 12-OCT-91 08:55:00.000                                            
+                                                                                
+                                                                                
+ END                                                                            
