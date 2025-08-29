@@ -1,0 +1,92 @@
+Pro csd_power,s1,s2,F,N,ff1,ff2,ff12,FF,m,a;HAN=han
+
+;Input parameters:
+;s1 - first process
+;s2 - second process
+;F  - sampling frequency
+;N  - number of points in a single series
+;
+;Output parameters:
+;FF1 - power for s1
+;FF2 - power for s2
+;FF12 - cross-spectrum for s1 & s2 in complex form
+;M  - cross-power
+;A  - cross-phase (Deg)
+;
+;FF - frequency argument
+;
+;Optional parameter:
+;AWIN - windowing parameter (HAN=han for hanning window)
+
+n1=n_elements(s1)	; Number of points
+n2=n_elements(s2)
+
+if N LE 1 then N=n1
+
+nn1=floor(n1/N)
+nn2=floor(n2/N)
+nn=nn1
+
+if nn1 LE nn2 then nn=nn1 else nn=nn2
+
+if nn LT 1 then begin
+print,'Too long series!'
+goto, FINISH
+endif
+
+rt=findgen(N)
+re1=findgen(N)
+re2=findgen(N)
+
+ff=0               	; Initial value for cross-spectrum
+ff1=0.
+ff2=0.
+ff12=0.
+;if keyword_set(han) then ww=hanning(N) else ww=1
+ww=hanning(N)
+;Averaging
+for i=0,nn-1 do begin
+
+re1=s1(i*N:(i+1)*N-1)
+re2=s2(i*N:(i+1)*N-1)
+;removing the 1st order trend
+cr1=poly_fit(rt,re1,1)
+re1=re1-poly(rt,cr1)
+
+cr2=poly_fit(rt,re2,1)
+re2=re2-poly(rt,cr2)
+
+;plot,re1
+;oplot,re2,color=250
+
+
+;ww=1
+;multiply by 2 because double-sided FFT-transform
+f1=fft(ww*re1)*2            	; 1st spectrum
+f2=fft(ww*re2)*2           	; 2nd spectrum
+
+
+
+
+;plot,s1(i:i+N-1)*ww
+;wait,3
+;ff=f1*conj(f2)    		      	; Cross-spectrum
+
+ff1=ff1+f1*conj(f1)
+ff2=ff2+f2*conj(f2)
+ff12=ff12+f1*conj(f2)
+
+endfor
+
+;Normalizing and compensation for the Hanning window
+ff1=ff1(0:N/2-1)/nn/0.374708
+ff2=ff2(0:N/2-1)/nn/0.374708
+ff12=ff12(0:N/2-1)/nn/0.374708
+
+m=abs(ff12)
+a=atan(ff12)*180./!pi
+;b = total(abs(a))/n1
+
+FINISH:FF=findgen(N/2)*F/N          	; Frequencies
+
+end
