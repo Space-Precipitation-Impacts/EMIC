@@ -1,0 +1,89 @@
+Pro Z_FIELDS, state,cm_eph,cm_val,Dat5
+common namm,nn,ttt
+COMMON POSN,Pyy1,Pyy2,Pxx1,Pxx2
+Common BLK4_Z,MnPow_Z,MxPow_Z
+common ptext,plottext
+nn=lonarr(4)
+ttt=cm_val.(0)
+nname = tag_names(cm_val)
+;if dat5 EQ 'Z FIELDS' then $
+;	begin
+widget_control,state.text,$
+set_value=string(cm_val.(0)[0:100])+string(cm_val.(6)[0:100])+$
+string(cm_val.(9)[0:100])+string(cm_val.(13)[0:100])
+ WIDGET_CONTROL, state.dat_info,$
+ SET_VALUE = string(strupcase(nname[6]))+' '+string(strupcase(nname[9]))+' '$
+ +string(strupcase(nname[13]))
+PyY1=[0.55,0.55,0.82,0.60]
+PyY2=[2.5,2.5,.99,0.80]
+PxX1=[0.05,0.05,0.1,0.10]
+Pxx2=[1.0,1.0,0.90,0.9]
+;pxv=!x.window*!d.x_vsize
+;pyv=!y.window*!d.y_vsize
+;pxv1=pxv(0)
+;pxv2=pxv(1)
+;pyv1=pyv(0)
+;pyv2=pyv(1)
+py11=pyy1[2];*(pyv2-pyv1)
+py22=pyy2[2];*(pyv2-pyv1)
+px11=pxx1[2];*(pxv2-pxv1)
+px22=pxx2[2];*(pxv2-pxv1)
+
+py111=pyy1[3]
+py222=pyy2[3];*(pyv2-pyv1)
+px111=pxx1[3];*(pxv2-pxv1)
+px222=pxx2[3];*(pxv2-pxv1)
+
+!P.multi=[0,1,4]
+window,10,xsize=700,ysize=650
+!p.charsize=2.0
+!X.charsize=1.0
+!Y.charsize=1.0
+
+;dDAT5='DBZ'
+dDAT5='CROSSPOWER'
+PDAT5='SZ'
+
+
+;DPOWN3_Z,cm_eph,cm_val,state,Ddat5
+!p.charsize=2.0
+!X.charsize=1.0
+!Y.charsize=1.0
+
+;for ii=11,13 do $
+
+; plot,cm_val.(0),cm_val.(6),ytitle=string(nname(6))+'(nT)',$
+; xtickformat='XTLaba',xticks=3,$
+;xstyle=5,nsum=1,xrange=[cm_val.(0)[0],max(cm_val.(0))],$
+; ymargin=[0,1]
+
+ ;!p.multi=0
+ plot,cm_val.(0),cm_val.(13),ytitle=string(nname(13))+'(uW/m!U2!n)',$
+ xtickformat='XTLaba',xticks=3,$
+ xstyle=5,nsum=1,xrange=[cm_val.(0)[0],max(cm_val.(0))],$
+POS=[px11,py11,px22,py22];,/device;ymargin=[6.5,-3.5],XMARGIN=[10,10]
+
+;POS=[0.1,0.4,0.9,0.6];,/device;ymargin=[6.5,-3.5],XMARGIN=[10,10]
+ plot,cm_val.(0),cm_val.(9),ytitle=string(nname(9))+'(nT)',$
+ xtickformat='XTLaba',xticks=3,$
+ xstyle=5,nsum=1,xrange=[cm_val.(0)[0],max(cm_val.(0))],$
+POS=[px111,py111,px222,py222];,/device;ymargin=[6.5,-3.5],XMARGIN=[10,10]
+ !P.charsize=1.0
+dpcrosspower_Z,cm_eph,cm_val,state,Ddat5
+DPpoynt_Z,cm_eph,cm_val,state,PDat5
+eph_inter_win_multi,cm_eph,cm_val,state,Dat5
+plottext=''
+;DPChoice3_Z,Dat5
+Dat5='Z FIELDS'
+ ;ymargin=[4,0],XMARGIN=[10,10]
+;print,px1,py1,px2,py2
+; plot,congrid(cm_val.(0),n_elements(cm_val.(0))/100.0),$
+; congrid(cm_val.(14),n_elements(cm_val.(14))/100.0),$
+;yrange=[0,180],$
+;xstyle=9,xtickformat='XTLaba',$
+;ytitle='PhetaSB (!Uo!n)',ymargin=[9.5,-6],$
+;xticks=3,nsum=1,XMARGIN=[10,10]
+
+
+END
+;endif
