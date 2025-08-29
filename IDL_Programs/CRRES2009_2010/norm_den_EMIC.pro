@@ -1,0 +1,667 @@
+pro norm_den_EMIC  
+;This program is almost identical to norm_EMIC_den.pro, but we put an
+;emphasis on making sure that there is density data avalible for each
+;of the events that we plot, otherwise they are ignored. When we
+;compute the superposed epochs in the other programs, the NaN's
+;are used to make sure that everything can be ploted accordingly.
+; This program is specific to the CRRES mission and cuts the data and
+; normalizes it properly... I think although still checking
+; everything. As of July 14th 2009 there were a few questions with the
+; emic event times. Alexa Halford 
+  
+;Here are a bunch of things needed for bits and pieces in the
+;program. 
+                                ;This is the length of the epoch
+                                ;around each EMIC wave
+  sepoch = .5*60.                  ;The amount of time before the epoch time
+  eepoch = .5*60.                  ;the amount of time after the epoch time
+  length = sepoch + eepoch + 1  ;the length of the epoch
+  buffer = 25.;30.;45.   ;This is the buffer around events. In other words, if an
+                                ;event has others within this time
+                                ;period they will be errased and
+                                ;considered to be part of the first
+                                ;event. This is in min.   
+                                ;This is the event file for the storm
+                                ;phases, and followed by the folder
+                                ;paths for the figures, save files,
+                                ;templates, and the data folders
+  figurefolder = '../figures/'
+  savefolder = '../Savefiles/'
+  tempfolder = '../Templates/'
+  datafolder = '../Data/'  
+                                ; Here we get the storm phase data open 
+  s1 = strpos('CRRES_storm_phases.txt','.')
+  file2 = strmid('CRRES_storm_phases.txt',0,s1)
+  file3 = strcompress('../Templates/'+file2+'_template.save')  
+                                ; Here we restoring and reaging in the
+                                ; storms and their phases during the
+                                ; CRRES mission.
+  restore, file3  
+  meep = read_ascii('../Data/CRRES_storm_phases.txt', template = template)
+  syear = meep.year
+  month = meep.month
+  day = meep.day
+  hh = meep.hour
+  mm = meep.mm
+  mmonth = meep.mmonth
+  mday = meep.mday
+  mhour = meep.mhour
+  mmm = meep.mmm
+  emonth = meep.emonth
+  eday = meep.eday
+  ehour = meep.ehour     
+  emm = meep.emm
+  minSymarray = make_array(N_elements(syear))
+  recovSymarray = make_array(N_elements(syear))
+  numberstorms = n_elements(syear)
+                                ;Here we restore the orbit file for
+                                ;the CRRES mission.
+  restore,'../Templates/CRRES_orbit_template.save'
+  beep = read_ascii('../Data/crres_orbit.txt', template = template)
+  CRorbit = beep.orbit
+  starttime = beep.start
+  CRdoy = beep.doy
+  cryear = beep.year
+                                ;Here we are creating the year long arrays for the CRRES data.
+                                ;This is Hu's list
+  restore, '../Templates/CRRES_emic_template.save'
+  jeep = read_ascii('../Data/CRRES_emic.txt', template = template)
+  UT = jeep.field13
+  orbit = jeep.field01
+  duration = jeep.field26
+  endUT = jeep.field18
+  numberEMIC = n_elements(ut)
+;  print, 'average duration', mean(duration)
+  doy = make_array(n_elements(orbit))
+  year = make_array(n_elements(orbit))
+                                ;Here we find the doy for each of the
+                                ;events and also create the year array
+                                ;as well.
+  for i = 0l, n_elements(orbit)-1 do begin
+     index = where(CRorbit eq orbit(i))
+     if index(0) ne -1 then doy(i) = crdoy(index(0)) $
+     else print, 'no match'
+                                ; I don't think that this is
+                                ; needed. The UT time (hour) when put
+                                ; into Julday should work out right.
+                                ; if Starttime(index) gt UT(i) then doy(i) = doy(i)+1.
+     year(i) = cryear(index(0))
+  endfor
+                                ;Here we are finding the indexes for
+                                ;the years 1990 and 1991
+  in90 = where(year eq 90)
+  in91 = where(year eq 91)
+                                ;Here we are creating the day of year
+                                ;(doy) and ut start (ut90(1)) and end
+                                ;(endut90(1)) time arrays for each year
+  doy90 = doy(in90) -1.         ; The -1 is because the year long arrays start with year 
+                                ;day of 0 instead of 1. It's an indexing problem. 
+  doy91 = doy(in91) -1.
+  ut90 = ut(in90)
+  ut91 = ut(in91)
+  endUT90 = endut(in90)
+  endut91 = endut(in91)
+                                ;Here we are creating the year long
+                                ;arrays for the EMIC
+                                ;events. syearminHu90(1) will have the
+                                ;duration of EMIC events where as
+                                ;oncrres90(1) will have just the
+                                ;onsets of the EMIC wave events.
+  syearminHu90 = make_array(365.*24.*60., value = 0) ;!Values.F_NAN)
+  syearminHu91 = syearminHu90
+  oncrres90 = syearminHu90
+  oncrres91 = syearminHu90
+                                ;In these for loops we are defining the
+                                ;EMIC wave events in the year long arrays.
+  for i = 0l, n_elements(UT90) -1 do begin
+                                ;Here we are puting a 1 where there is
+                                ;an EMIC wave event occuring (the
+                                ;whole duration).
+     syearminHu90(floor(((doy90(i)*24.*60.) + (Ut90(i)*60.))):floor(((doy90(i)*24.*60.) + (endUt90(i)*60.)))) = 1
+                                ;Here we are putting a 1 where the
+                                ;start of the EMIC wave is.
+     oncrres90((doy90(i)*24.*60.) + (Ut90(i)*60.)) = 1
+  endfor
+  for i = 0l, n_elements(UT91) -1 do begin
+                                ;This is the same as the above for
+                                ;loop but for 1991 instead of 1990.
+     syearminHu91(floor(((doy91(i)*24.*60.) + (Ut91(i)*60.))):Floor(((doy91(i)*24.*60.) + (endUt91(i)*60.)))) = 1
+     oncrres91((doy91(i)*24.*60.) + (Ut91(i)*60.)) = 1
+  endfor
+                                ;Here we will make sure that there is
+                                ;density data for all of the epoch
+                                ;event, if there isn't enough
+                                ;events left then I'll run the
+                                ;fix data program first and try
+                                ;again. 
+
+                                ;Here we will "remove" the
+                                ;emic's which are within the
+                                ;buffer of the other events. This is
+                                ;done since the pearl or pearl like
+                                ;events are very likely set off by the
+                                ;same generation mechanism. When the
+                                ;buffer is set to 0 then each event
+                                ;will be considered. 
+  restore, '../Data/CRRES_1min_1990.save'
+  restore, '../Data/CRRES_1min_1991.save'
+  baddenindex = where(den90 lt 0.)
+  if baddenindex(0) gt -1 then den90(baddenindex) = !values.F_NAN
+  baddenindex = where(den91 lt 0.)
+  if baddenindex(0) gt -1 then den91(baddenindex) = !values.F_NAN
+  print, 'number of events to start with', n_elements(where(oncrres90 eq 1)) + n_elements(where(oncrres91 eq 1))
+  oncrres90 = event_has_data(oncrres90, den90, buffer, 0., sepoch, eepoch) ;!values.F_NAN)
+  oncrres91 = event_has_data(oncrres91, den90, buffer, 0., sepoch, eepoch) ;!values.F_NAN)  
+  print, 'number of events after cleaning', n_elements(where(oncrres90 eq 1)) + n_elements(where(oncrres91 eq 1))
+  indexevents90 = where(oncrres90 eq 1)
+  indexevents91 = where(oncrres91 eq 1)
+  events = n_elements(indexevents90) + n_elements(indexevents91) ;This is the total number of events
+  ;indexmlt90 = where((MLT90 ge 18.) and (MLT90 le 24.))
+  ;indexmlt91 = where((MLT91 ge 18.) and (MLT91 le 24.))
+  ;mlt18_90 = make_array(365.*24.*60., value = !values.F_NAN)
+  ;mlt18_91 = mlt18_90
+  ;mlt18_90(indexmlt90) = 1
+  ;mlt18_91(indexmlt91) = 1
+  ;indexevents90 = indexevents90*mlt18_90
+  ;indexevents91 = indexevents91*mlt18_91
+                                ;Here we make the year array for the
+                                ;non-storm time events, storm time and
+                                ;the relavent phases. 
+  quiet90 = make_array(365.*24.*60., value = !values.F_NAN)
+  storm90 = make_array(365.*24.*60., value = !values.F_NAN)
+  onphase90 = make_array(365.*24.*60., value = !values.F_NAN)
+  mainphase90 = make_array(365.*24.*60., value = !values.F_NAN)
+  recovphase90 = make_array(365.*24.*60., value = !values.F_NAN)
+  quiet91 = make_array(365.*24.*60., value = !values.F_NAN)
+  storm91 = make_array(365.*24.*60., value = !values.F_NAN)
+  onphase91 = make_array(365.*24.*60., value = !values.F_NAN)
+  mainphase91 = make_array(365.*24.*60., value = !values.F_NAN)
+  recovphase91 = make_array(365.*24.*60., value = !values.F_NAN)
+;*************************************************************************************************************
+                                ;this for loop consists of us finding
+                                ;the storm time arrays and placing a 1
+                                ;where a storm (or the phase) is
+                                ;occurring in the year long arrays.
+  for k = 0l, n_elements(syear) - 1. do begin     
+                                ;Now we will first get all of the sym data cut into the proper pieces
+                                ;for each of the storm events.      
+     onyday = stand2yday(month(k), day(k), syear(k), hh(k), mm(k), 0.)
+     mainyday = stand2yday(mmonth(k), mday(k), syear(k), mhour(k), mmm(k), 0.)
+     recyday = stand2yday(emonth(k), eday(k), syear(k), ehour(k), emm(k), 0.)
+                                ;These are the start and end of the
+                                ;storms in fracdays. Again the
+                                ;-1's are there to find the
+                                ;correct index in the arrays. 
+     styday = onyday - (3./24.) -1.
+     onyday = onyday -1.
+     mainyday = mainyday -1.
+     recov = recyday -1.
+                                ;Here we put a 1 during the times when
+                                ;there is a storm.
+     if syear(k) eq 1990 then begin 
+        storm90(styday*24.*60.:recov*24.*60.) = 1
+        onphase90(styday*24.*60.:onyday*24.*60.-1) = 1
+        mainphase90(onyday*24.*60.:mainyday*24.*60.-1) = 1
+        recovphase90(mainyday*24.*60.:recov*24.*60.) = 1
+     endif
+     if syear(k) eq 1991 then begin 
+        storm91(styday*24.*60.:recov*24.*60.) = 1
+        onphase91(styday*24.*60.:onyday*24.*60.-1) = 1
+        mainphase91(onyday*24.*60.:mainyday*24.*60.-1) = 1
+        recovphase91(mainyday*24.*60.:recov*24.*60.) = 1
+     endif
+  endfor
+  nsindex90 = where(storm90 ne 1)
+  nsindex91 = where(storm91 ne 1)
+                                ;now we'll put a 1 where there
+                                ;is not a storm occurring. 
+  quiet90(nsindex90) = 1.
+  quiet91(nsindex91) = 1.
+                                ;Here we are finding our EMIC wave
+                                ;events for each phase first for 1990
+                                ;and then for 1991     
+;  if syear(k) eq 1990 then begin 
+  qemic90 = oncrres90*quiet90
+  semic90 = oncrres90*storm90
+  oemic90 = oncrres90*onphase90
+  memic90 = oncrres90*mainphase90
+  remic90 = oncrres90*recovphase90
+;  endif
+;  if syear(k) eq 1991 then begin 
+  qemic91 = oncrres91*quiet91
+  semic91 = oncrres91*storm91
+  oemic91 = oncrres91*onphase91
+  memic91 = oncrres91*mainphase91
+  remic91 = oncrres91*recovphase91
+;  endif
+;********************************************************************************
+                                ;Here we are restoring the 1 min. data
+                                ;for CRRES (the position and density).
+  restore, '../Data/CRRES_1min_1990.save'
+                                ;now we'll start getting the
+                                ;1990 data and relavent stuff ready
+                                ;for the coming loop where we will be
+                                ;cutting all the data for the epochs
+  restore, '../Data/kyoto_Sym_1990.save'
+  restore, '../Data/kyoto_ALAU_1990.save'
+  restore, '../Data/kp_CDAWeb1990.save'
+                                ;These arrays have the number of EMIC
+                                ;events and the length of the epoch
+                                ;times. These will be used to create
+                                ;the superpose epochs later in the program.
+  all_sym = make_array(events, length)
+  all_kp = make_array(events, length)
+  all_den =  make_array(events, length)
+  all_AL =  make_array(events, length)
+                                ;here we (once again) find where the
+                                ;emic waves are located for each of
+                                ;the situations (non-storm, storm,
+                                ;ect.)
+  index90 = where(oncrres90 eq 1)
+  index90q = where(qemic90 eq 1)
+  index90s = where(semic90 eq 1)
+  index90o = where(oemic90 eq 1)
+  index90m = where(memic90 eq 1)
+  index90r = where(remic90 eq 1)
+  index91 = where(oncrres91 eq 1)
+  index91q = where(qemic91 eq 1)
+  index91s = where(semic91 eq 1)
+  index91o = where(oemic91 eq 1)
+  index91m = where(memic91 eq 1)
+  index91r = where(remic91 eq 1)
+  for i = 0l, n_elements(index90)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+                                ;now that we have the epoch times, we
+                                ;can put 1's around the epoch
+                                ;for the times that we want to look
+                                ;at.
+     temp(index90(i)-sepoch:index90(i)+eepoch) = 1
+                                ;Now we can multiply this year array
+                                ;with Nan's where there is no
+                                ;event time that we want to look at by
+                                ;the year arrays for the relavent data
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+                                ;Here we find where the event was so
+                                ;that we can put it into the arrays
+                                ;that will contain all the events of
+                                ;this type. In this case all of the
+                                ;observed EMIC events
+     stuff = where(finite(tempsym))
+                                ;Now we cut each of the data arrays
+                                ;and only put in where we have the data
+     all_sym(i,*) = tempsym(stuff)
+     all_kp(i,*) = tempkp(Stuff)
+     all_den(i,*) = tempden(stuff)
+     all_AL(i,*) = tempAL(stuff)
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during quiet times
+  q_sym = make_array(n_elements(index90q) + n_elements(index91q), length)
+  q_kp = q_sym
+  q_den = q_sym
+  q_AL = q_sym
+  for i = 0l, n_elements(index90q)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index90q(i)-sepoch:index90q(i)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     q_sym(i,*) = tempsym(stuff)
+     q_kp(i,*) = tempkp(Stuff)
+     q_den(i,*) = tempden(stuff)
+     q_AL(i,*) = tempAL(stuff)
+  endfor
+                                ;Here we do the same thing for the
+                                ;EMIC waves which were observed during
+                                ;storm conditions
+  s_sym = make_array(n_elements(index90s) + n_elements(index91s), length)
+  s_kp = s_sym
+  s_den = s_sym
+  s_AL = s_sym
+  for i = 0l, n_elements(index90s)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index90s(i)-sepoch:index90s(i)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     s_sym(i,*) = tempsym(stuff)
+     s_kp(i,*) = tempkp(Stuff)
+     s_den(i,*) = tempden(stuff)
+     s_AL(i,*) = tempAL(stuff)
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the pre-onset phase of the storm.
+  o_sym = make_array(n_elements(index90o) + n_elements(index91o), length)
+  o_kp = o_sym
+  o_den = o_sym
+  o_AL = o_sym
+  for i = 0l, n_elements(index90o)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index90o(i)-sepoch:index90o(i)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     o_sym(i,*) = tempsym(stuff)
+     o_kp(i,*) = tempkp(Stuff)
+     o_den(i,*) = tempden(stuff)
+     o_AL(i,*) = tempAL(stuff)
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the main phase of the storm.
+  m_sym = make_array(n_elements(index90m) + n_elements(index91m), length)
+  m_kp = m_Sym
+  m_den = m_sym
+  m_AL = m_sym
+  for i = 0l, n_elements(index90m)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index90m(i)-sepoch:index90m(i)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     m_sym(i,*) = tempsym(stuff)
+     m_kp(i,*) = tempkp(Stuff)
+     m_den(i,*) = tempden(stuff)
+     m_AL(i,*) = tempAL(stuff)
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the recovery phase of the storm.
+  r_sym = make_array(n_elements(index90r) + n_elements(index91r), length)
+  r_kp = r_sym
+  r_den = r_sym
+  r_AL = r_sym
+  for i = 0l, n_elements(index90r)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index90r(i)-sepoch:index90r(i)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     r_sym(i,*) = tempsym(stuff)
+     r_kp(i,*) = tempkp(Stuff)
+     r_den(i,*) = tempden(stuff)
+     r_AL(i,*) = tempAL(stuff)
+  endfor
+                                ;Here we restore the 1991 data
+  restore, '../Data/CRRES_1min_1991.save'
+  restore, '../Data/kyoto_Sym_1991.save'
+  restore, '../Data/kp_CDAWeb1991.save'
+                                ;Now we do most of it all again for
+                                ;the year 1991.
+  for i = n_elements(index90), n_elements(all_sym(*,0))-1 do begin ;something needs to be done with i. 
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91(i-n_elements(index90))-sepoch:index91(i-n_elements(index90))+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     all_sym(i,*) = tempsym(stuff)
+     all_kp(i,*) = tempkp(Stuff)
+     all_den(i,*) = tempden(stuff)
+     all_AL(i,*) = tempAL(stuff)
+  endfor
+;stop
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during quiet times
+  for i = n_elements(index90q), n_elements(q_sym(*,0))-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91q(i-n_elements(index90q))-sepoch:index91q(i-n_elements(index90q))+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     q_sym(i,*) = tempsym(stuff)
+     q_kp(i,*) = tempkp(Stuff)
+     q_den(i,*) = tempden(stuff)
+     q_AL(i,*) = tempAL(stuff)
+  endfor
+                                ;Here we do the same thing for the
+                                ;EMIC waves which were observed during
+                                ;storm conditions
+  for i = n_elements(index90s), n_elements(s_sym(*,0))-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91s(i-n_elements(index90s))-sepoch:index91s(i-n_elements(index90s))+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     s_sym(i,*) = tempsym(stuff)
+     s_kp(i,*) = tempkp(Stuff)
+     s_den(i,*) = tempden(stuff)
+     s_AL(i,*) = tempAL(stuff)
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the pre-onset phase of the storm.
+  for i = n_elements(index90o), n_elements(o_sym(*,0))-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91o(i-n_elements(index90o))-sepoch:index91o(i-n_elements(index90o))+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     o_sym(i,*) = tempsym(stuff)
+     o_kp(i,*) = tempkp(Stuff)
+     o_den(i,*) = tempden(stuff)
+     o_AL(i,*) = tempAL(stuff)
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the main phase of the storm.
+  for i = n_elements(index90m), n_elements(m_sym(*,0))-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91m(i-n_elements(index90m))-sepoch:index91m(i-n_elements(index90m))+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     m_sym(i,*) = tempsym(stuff)
+     m_kp(i,*) = tempkp(Stuff)
+     m_den(i,*) = tempden(stuff)
+     m_AL(i,*) = tempAL(stuff)
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the recovery phase of the storm.
+  for i = n_elements(index90r), n_elements(r_sym(*,0))-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91r(i-n_elements(index90r))-sepoch:index91r(i-n_elements(index90r))+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     stuff = where(finite(tempsym))
+     r_sym(i,*) = tempsym(stuff)
+     r_kp(i,*) = tempkp(Stuff)
+     r_den(i,*) = tempden(stuff)
+     r_AL(i,*) = tempAL(stuff)
+  endfor
+;***************************************************************************************************
+  norm_all_den = all_den 
+ for i = 0l,n_elements(all_den(*,0))-1 do norm_all_den(i,*) = all_den(i,*)/abs(max(all_den(i,*)))
+  print, max(norm_all_den)
+  print, min(norm_all_den)
+  xarray = findgen(sepoch + eepoch + 1) - sepoch
+  ;stop
+  !P.multi = [0,1,1]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = strcompress('EMIC_indi_all_den_b_'+string(buffer)+'_s_'+string(sepoch)+'_e_'+string(eepoch), /remove_all)
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+  numbloops = ceil(N_elements(norm_all_den(*,0))/20.)
+                               ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  for loop = 0l, numbloops do begin
+     plot, xarray, (norm_all_den(loop,*)), yrange = [0,21. ], title = 'All EMIC wave events', ytitle = '# density'$
+           , ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1 ;, xcharsize = 0.01, charsize = ch ,ymargin = [.1,2]
+     loop2 = loop*20. + 19.
+     if loop2 ge n_elements(norm_all_den(*,0)) then loop2 = n_elements(norm_all_den(*,0)) -1
+     for j = loop*20.+1.,loop2 do begin 
+        oplot, xarray, norm_all_den(j,*)+j 
+     endfor
+  endfor
+  device, /close_file
+  close, /all
+  norm_s_den = s_den
+  for i = 0l,n_elements(s_den(*,0))-1 do norm_s_den(i,*) = s_den(i,*)/abs(max(s_den(i,*)))  
+  !P.multi = [0,1,1]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = strcompress('EMIC_indi_storm_den_b_'+string(buffer)+'_s_'+string(sepoch)+'_e_'+string(eepoch), /remove_all)
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  numbloops = ceil(N_elements(norm_s_den(*,0))/20.)
+  for loop = 0l, numbloops do begin
+     plot, xarray, (norm_s_den(0,*)), yrange = [0,75 ], title = 'storm EMIC wave events', ytitle = '# density'$
+           , ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1
+     loop2 = loop*20.+ 19.
+     if loop2 ge n_elements(norm_s_den(*,0)) then loop2 = n_elements(norm_s_den(*,0))-1
+     for j = loop*20.+1.,loop2 do begin 
+        oplot, xarray, norm_s_den(j,*)+j 
+     endfor
+  endfor
+  device, /close_file
+  close, /all
+  norm_m_den = m_den
+  for i = 0l,n_elements(m_den(*,0))-1 do norm_m_den(i,*) = m_den(i,*)/abs(max(m_den(i,*)))  
+  !P.multi = [0,1,1]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = strcompress('EMIC_indi_main_den_b_'+string(buffer)+'_s_'+string(sepoch)+'_e_'+string(eepoch), /remove_all)
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  numbloops = ceil(N_elements(norm_m_den(*,0))/20.)
+  for loop = 0l, numbloops do begin
+     loop2 = loop*20. + 19.
+     if loop2 ge n_elements(norm_m_den(*,0)) then loop2 = n_elements(norm_m_den(*,0)) -1
+     plot, xarray, (norm_m_den(0,*)), yrange = [0,41 ], title = 'main EMIC wave events', ytitle = '#density'$
+           , ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1
+     for j = loop*20.+1.,loop2 do begin 
+        oplot, xarray, norm_m_den(j,*)+j 
+     endfor
+  endfor
+  device, /close_file
+  close, /all
+  norm_r_den = r_den
+  for i = 0l,n_elements(r_den(*,0))-1 do norm_r_den(i,*) = r_den(i,*)/abs(max(r_den(i,*)))  
+  !P.multi = [0,2,1]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = strcompress('EMIC_indi_recovery_den_b_'+string(buffer)+'_s_'+string(sepoch)+'_e_'+string(eepoch), /remove_all)
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  numbloops = ceil(N_elements(norm_r_den(*,0))/20.)
+  for loop = 0l, numbloops do begin
+     loop2 = loop*20. + 19.
+     if loop2 ge n_elements(norm_r_den(*,0)) then loop2 = n_elements(norm_r_den(*,0))-1
+     plot, xarray, (norm_r_den(0,*)), yrange = [0,31 ], title = 'recovery EMIC wave events', ytitle = '#density'$
+           , ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1
+     for j = loop*20.+1.,loop2 do begin 
+        oplot, xarray, norm_r_den(j,*)+j 
+     endfor
+  endfor
+  device, /close_file
+  close, /all
+  norm_o_den = o_den
+  for i = 0l,n_elements(o_den(*,0))-1 do norm_o_den(i,*) = o_den(i,*)/abs(max(o_den(i,*)))  
+  !P.multi = [0,1,1]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = strcompress('EMIC_indi_onset_den_b_'+string(buffer)+'_s_'+string(sepoch)+'_e_'+string(eepoch), /remove_all)
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  numbloops = ceil(N_elements(norm_o_den(*,0))/20.)
+  for loop = 0l, numbloops do begin
+     loop2 = loop*20. + 19.
+     if loop2 ge n_elements(norm_o_den(*,0)) then loop2 = n_elements(norm_o_den(*,0))-1
+     plot, xarray, (norm_o_den(0,*)), yrange = [0,n_elements(norm_o_den(*,0)) ], title = 'onset EMIC wave events', ytitle = '#density'$
+           , ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1
+     for j = loop*20.+1.,loop2 do begin 
+        oplot, xarray, norm_o_den(j,*)+j 
+     endfor
+  endfor
+  device, /close_file
+  close, /all
+  norm_q_den = q_den
+  for i = 0l,n_elements(q_den(*,0))-1 do norm_q_den(i,*) = q_den(i,*)/abs(max(q_den(i,*)))  
+  !P.multi = [0,2,1]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = strcompress('EMIC_indi_quiet_den_b_'+string(buffer)+'_s_'+string(sepoch)+'_e_'+string(eepoch), /remove_all)
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  numbloops = ceil(N_elements(norm_q_den(*,0))/20.)
+  for loop = 0l, numbloops do begin
+     loop2 = loop*20. + 19.
+     if loop2 ge n_elements(norm_q_den(*,0)) then loop2 = n_elements(norm_o_den(*,0))
+     plot, xarray, (norm_q_den(0,*)), yrange = [0,101 ], title = 'quiet EMIC wave events', ytitle = '#density'$
+           , ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1
+     for j = loop*20.+1.,loop2 do begin 
+        oplot, xarray, norm_q_den(j,*)+j 
+     endfor
+  endfor
+  device, /close_file
+  close, /all
+end

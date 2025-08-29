@@ -1,0 +1,1017 @@
+pro AGU_polar_den_plot
+;EMIC_LT_LS was begining too long, so this is an extension... as in it
+;has the same goals as EMIC_LT_LS, but is putting out other plots,
+;namely more concise plots about the occurances of EMIC waves during
+;storms. - Alexa Halford
+
+datafolder = '../../Data/'
+
+;Here we are restoring the template to read in the EMIC waves from Hu
+restore, '../../Templates/CRRES_emic_template.save'
+
+                                ;Here we are reading in the EMIC waves
+                                ;events from Hi
+  jeep = read_ascii('../../Data/CRRES_emic.txt', template = template)
+  hMLT = make_array(365.*24.*60., value = !values.F_NAN)
+  hLS = hmlt
+  
+  UT = jeep.field13
+  orbit = jeep.field01
+  duration = jeep.field26
+  endUT = jeep.field18
+  Humlt1 = jeep.field15
+  HUmlt2 = jeep.field20
+  HULS1 = jeep.field16
+  HULS2 = jeep.field21
+  hden = jeep.field03
+                                ;Here we are making the arrays for doy
+                                ;and year. 
+  doy = make_array(n_elements(orbit))
+  year = make_array(n_elements(orbit))
+                                ;Here we restore the orbit file for
+                                ;the CRRES mission.
+  restore,'../../Templates/CRRES_orbit_template.save'
+  beep = read_ascii('../../Data/crres_orbit.txt', template = template)
+  CRorbit = beep.orbit
+  starttime = beep.start
+  CRdoy = beep.doy
+  cryear = beep.year
+
+
+
+                                ;Here we find the doy for each of the
+                                ;events and also create the year array
+                                ;as well.
+  for i = 0l, n_elements(orbit)-1 do begin
+     index = where(CRorbit eq orbit(i))
+     if index(0) ne -1 then doy(i) = crdoy(index(0)) $
+     else print, 'no match'
+                                ; I don't think that this is
+                                ; needed. The UT time (hour) when put
+                                ; into Julday should work out right.
+                                ; if Starttime(index) gt UT(i) then doy(i) = doy(i)+1.
+     year(i) = cryear(index(0))
+  endfor
+
+                                ;here we create the arrays which are
+                                ;used later in the program. Many of
+                                ;these are the year long arrays for
+                                ;the different variables. In order to
+                                ;get the correct indexing (our index
+                                ;starts at 0) we need to subtract 1
+                                ;from the doy.
+  in90 = where(year eq 90)
+  in91 = where(year eq 91)
+
+  doy90 = doy(in90) -1.
+  doy91 = doy(in91) -1.
+  ut90 = ut(in90)
+  ut91 = ut(in91)
+  endUT90 = endut(in90)
+  endut91 = endut(in91)
+  hmlt190 = humlt1(in90)
+  hmlt191 = humlt1(in91)
+  hmlt290 = humlt2(in90)
+  hmlt291 = humlt2(in91)
+  hls190 = huls1(in90)
+  hls191 = huls1(in91)
+  hls290 = huls2(in90)
+  hls291 = huls2(in91)
+  thden90 = hden(in90)
+  thden91 = hden(in91)
+
+  syearminHu90 = make_array(365.*24.*60., value = !Values.F_NAN)
+  syearminHu91 = make_array(365.*24.*60., value = !Values.F_NAN)
+  hmlt90 =  make_array(365.*24.*60., value = !Values.F_NAN)
+  hmlt91 = hmlt90
+  hls90 = hmlt90
+  hls91 = hmlt90
+  hden90 = hmlt90
+  hden91 = hmlt90
+
+  oncrres90 = hmlt90
+  oncrres91 = hmlt90
+                                ;here we are putting in the variables
+                                ;into the year long arrays. 
+  for i = 0l, n_elements(UT90) -1 do begin
+     syearminHu90(floor(((doy90(i)*24.*60.) + (Ut90(i)*60.))):floor(((doy90(i)*24.*60.) + (endUt90(i)*60.)))) = 1
+     hmlt90(Floor(((doy90(i)*24.*60.) + (Ut90(i)*60.))):Floor(((doy90(i)*24.*60.) + (endUt90(i)*60.)))) = $
+        (hmlt190(i) + hmlt290(i))/2.
+     hls90(floor(((doy90(i)*24.*60.) + (Ut90(i)*60.))):floor(((doy90(i)*24.*60.) + (endUt90(i)*60.)))) = $
+        (Hls190(i) + hls290(i))/2.
+     oncrres90((doy90(i)*24.*60.) + (Ut90(i)*60.)) = 1
+     hden90(floor(((doy90(i)*24.*60.) + (Ut90(i)*60.))):floor(((doy90(i)*24.*60.) + (endUt90(i)*60.)))) =  $
+        thden90(i)
+  endfor
+
+  for i = 0l, n_elements(UT91) -1 do begin
+     syearminHu91(floor(((doy91(i)*24.*60.) + (Ut91(i)*60.))):Floor(((doy91(i)*24.*60.) + (endUt91(i)*60.)))) = 1
+     hmlt91(floor(((doy91(i)*24.*60.) + (Ut91(i)*60.))):floor(((doy91(i)*24.*60.) + (endUt91(i)*60.)))) = $
+        (hmlt191(i) + hmlt291(i))/2.
+     hls91(floor(((doy91(i)*24.*60.) + (Ut91(i)*60.))):Floor(((doy91(i)*24.*60.) + (endUt91(i)*60.)))) = $
+        (Hls191(i) + hls291(i))/2.
+     oncrres91((doy91(i)*24.*60.) + (Ut91(i)*60.)) = 1
+     hden91(floor(((doy91(i)*24.*60.) + (Ut91(i)*60.))):floor(((doy91(i)*24.*60.) + (endUt91(i)*60.)))) = $
+        thden91(i)
+  endfor
+
+                                ;Now we are starting to read in the
+                                ;storms and their phases. 
+  s1 = strpos('CRRES_storm_phases.txt','.')
+  file2 = strmid('CRRES_storm_phases.txt',0,s1)
+  file3 = strcompress('../../Templates/'+file2+'_template.save')
+
+  
+                                ; Here we restoring and reaging in the
+                                ; storms and their phases during the
+                                ; CRRES mission.
+  restore, file3  
+  meep = read_ascii('../../Data/CRRES_storm_phases.txt', template = template)
+  year = meep.year(0:118)
+  month = meep.month(0:118)
+  day = meep.day(0:118)
+  hh = meep.hour(0:118)
+  mm = meep.mm(0:118)
+  mmonth = meep.mmonth(0:118)
+  mday = meep.mday(0:118)
+  mhour = meep.mhour(0:118)
+  mmm = meep.mmm(0:118)
+  emonth = meep.emonth(0:118)
+  eday = meep.eday(0:118)
+  ehour = meep.ehour(0:118)
+  emm = meep.emm(0:118)
+
+  onyday = stand2yday(month, day, year, hh, mm, 0.)
+  mainyday = stand2yday(mmonth, mday, myear, mhour, mmm, 0.)
+  recyday = stand2yday(emonth, eday, eyear, ehour, emm, 0.)
+  
+                                ;these are the indices for the storm
+                                ;phases. In order to get the correct
+                                ;indexing we have to subtract one from
+                                ;the day of year
+  on90 = where(year eq 1990.)
+  on91 = where(year eq 1991.)
+                                ;These are the start and end of the storms
+  styday90 = onyday(on90) - (3./24.) -1.
+  onyday90 = onyday(on90) -1.
+  mainyday90 = mainyday(on90) -1.
+  recov90 = recyday(on90) -1.
+  styday91 = onyday(on91) - (3./24.) -1.
+  onyday91 = onyday(on91) -1.
+  mainyday91 = mainyday(on91) -1.
+  recov91 = recyday(on91) -1.
+
+                                ;Here we make the year array for the storms
+  storm90 = make_array(365.*24.*60., value = !values.F_NAN)
+  storm91 = make_array(365.*24.*60., value = !values.F_NAN)
+  onphase90 = make_array(365.*24.*60., value = !values.F_NAN)
+  onphase91 = make_array(365.*24.*60., value = !values.F_NAN)
+  mainphase90 = make_array(365.*24.*60., value = !values.F_NAN)
+  mainphase91 = make_array(365.*24.*60., value = !values.F_NAN)
+  recovphase90 = make_array(365.*24.*60., value = !values.F_NAN)
+  recovphase91 = make_array(365.*24.*60., value = !values.F_NAN)
+  
+
+                                ;Here we put a 1 during the times when
+                                ;there is a storm.
+  for ii = 0,n_elements(onyday90) -1 do begin
+     storm90(styday90(ii)*24.*60.:recov90(ii)*24.*60.) = 1
+     onphase90(styday90(ii)*24.*60.:onyday90(ii)*24.*60.) = 1
+     mainphase90(onyday90(ii)*24.*60.:mainyday90(ii)*24.*60.) = 1
+     recovphase90(mainyday90(ii)*24.*60.:recov90(ii)*24.*60.) = 1
+  endfor
+  restore, datafolder+'kyoto_Sym_1990.save'
+  sym90 = sym
+  for jj = 0,n_elements(onyday91) -1 do begin
+     storm91(styday91(jj)*24.*60.:recov91(JJ)*24.*60.) = 1
+     onphase91(styday91(jj)*24.*60.:onyday91(jj)*24.*60.) = 1
+     mainphase91(onyday91(jj)*24.*60.:mainyday91(jj)*24.*60.) = 1
+     recovphase91(mainyday91(jj)*24.*60.:recov91(jj)*24.*60.) = 1
+  endfor
+  restore, datafolder+'kyoto_Sym_1991.save'
+  sym91 = sym
+  
+                                ;here we determining when is a non
+                                ;storm, or quiet time. 
+  quiet90 = make_array(365.*24.*60., value = !values.F_NAN)
+  quiet91 = make_array(365.*24.*60., value = !values.F_NAN)
+
+  stormindex90 = where(finite(storm90), complement = quietindex90)
+  stormindex91 = where(finite(storm91), complement = quietindex91)
+
+  
+  quiet90(quietindex90) = 1.
+  quiet91(quietindex91) = 1.
+
+  qmlt90 = quiet90 * hmlt90
+  qmlt91 = quiet91 * hmlt91
+  qls90 = quiet90 * hls90
+  qls91 = quiet91 * hls91
+
+  allarray = [oncrres90, oncrres91]
+
+  mlt90 = hmlt90 * storm90
+  mlt91 = hmlt91 * storm91
+  ls90 = hls90 * storm90
+  ls91 = hls91 * storm91
+  symstorm90 = sym90*storm90
+  symstorm91 = sym91*storm91
+  numarray = [oncrres90 * storm90,oncrres91 * storm91]
+  den90 = hden90*storm90
+  den91 = hden91*storm91
+
+
+  omlt90 = hmlt90 * onphase90
+  omlt91 = hmlt91 * onphase91
+  ols90 = hls90 * onphase90
+  ols91 = hls91 * onphase91
+  numonarray = [oncrres90 * onphase90,oncrres91 * onphase91]
+  oden90 = hden90*onphase90
+  oden91 = hden91*onphase91
+  osym90 = sym90*onphase90
+  osym91 = sym91*onphase91
+
+
+  mmlt90 = hmlt90 * mainphase90
+  mmlt91 = hmlt91 * mainphase91
+  mls90 = hls90 * mainphase90
+  mls91 = hls91 * mainphase91
+  nummainarray = [oncrres90 * mainphase90,oncrres91 * mainphase91]
+  mden90 = hden90*mainphase90
+  mden91 = hden91*mainphase91
+  msym90 = sym90*mainphase90
+  msym91 = sym91*mainphase91
+
+
+  rmlt90 = hmlt90 * recovphase90
+  rmlt91 = hmlt91 * recovphase91
+  rls90 = hls90 * recovphase90
+  rls91 = hls91 * recovphase91
+  numrecovarray = [oncrres90 * recovphase90,oncrres91 * recovphase91]
+  rden90 = hden90*recovphase90
+  rden91 = hden91*recovphase91
+  rsym90 = sym90*recovphase90
+  rsym91 = sym91*recovphase91
+
+
+  maxden90 =  max(hden90(where(finite(hden90))))
+  maxden91 =  max(hden91(where(finite(hden91))))
+  maxdensity = max([maxden90, maxden91])*.57
+;********************************************************************************************************************
+;********************************************************************************************************************
+
+print, 'Average mlt', mean([hmlt90, hmlt91], /nan)
+print, 'Average ls', mean([hls90, hls91], /nan)
+
+print, 'Average non storm mlt', mean([qmlt90, qmlt91], /nan)
+print, 'Average non storm ls', mean([qls90, qls91], /nan)
+
+print, 'Average storm mlt', mean([mlt90, mlt91], /nan)
+print, 'Average storm ls', mean([ls90, ls91], /nan)
+
+print, 'Average onset mlt', mean([omlt90, omlt91], /nan)
+print, 'Average onset ls', mean([ols90, ols91], /nan)
+
+print, 'Average main mlt', mean([mmlt90, mmlt91], /nan)
+print, 'Average main ls', mean([mls90, mls91], /nan)
+
+print, 'Average recovery mlt', mean([rmlt90, rmlt91], /nan)
+print, 'Average recovery ls', mean([rls90, rls91], /nan)
+
+
+
+
+        
+;*************************************************************************************************************************************************
+        
+;*****************************************************************
+;this is now the polar plot for storm time
+;events. *********************************************************
+        
+        
+        theta = findgen(25)*!pi/12.
+        lsr = findgen(11)
+        
+        polarx = lsr * cos(theta)
+        polary = lsr * sin(theta)
+        
+        polarden = fltarr(24., 10.)
+        tpolarden =  fltarr(24., 10.)
+        
+        
+;Here we are creating the average electron density for EMIC
+;wave events.
+        
+        mlt = [mlt90, mlt91]
+        den = [den90, den91]
+        omlt = [omlt90, omlt91]
+        oden = [oden90, oden91]
+        mmlt = [mmlt90, mmlt91]
+        mden = [mden90, mden91]
+        rmlt = [rmlt90, rmlt91]
+        rden = [rden90, rden91]
+        ls = [ls90, ls91]
+        ols = [ols90, ols91]
+        mls = [mls90, mls91]
+        rls = [rls90, rls91]
+        tden  = [hden90, hden91] ;t for total
+        tmlt = [hmlt90, hmlt91]
+        tls = [hls90, hls91]
+
+        for j = 0, n_elements(tpolarden(0,*))-1 do begin
+           lsmeep = make_array(n_elements(tden), value = 0)
+           inls = where((tls ge j) and (tls lt j+1))
+           if inls(0) ne -1 then lsmeep(inls) = 1
+           for i = 0, n_elements(tpolarden(*,0))-1 do begin
+              mltmeep = make_array(n_elements(tden), value = 0)
+              inmlt = where((tmlt ge i) and (tmlt lt i+1))
+              if inmlt(0) ne -1 then mltmeep(inmlt) = 1
+              meep = mltmeep*lsmeep
+              use = where(meep eq 1)
+              if use(0) ne -1 then begin
+                 tpolarden(i,j) = mean(tden(use))
+              endif else begin
+                 tpolarden(i,j) = 0.
+              endelse
+           endfor                      
+        endfor
+
+
+        
+;Here we are creating the average electron density for storm time EMIC
+;wave events.
+        for j = 0, n_elements(polarden(0,*))-1 do begin
+           lsmeep = make_array(n_elements(den), value = 0)
+           inls = where((ls ge j) and (ls lt j+1))
+           if inls(0) ne -1 then lsmeep(inls) = 1
+           for i = 0, n_elements(polarden(*,0))-1 do begin
+              mltmeep = make_array(n_elements(den), value = 0)
+              inmlt = where((mlt ge i) and (mlt lt i+1))
+              if inmlt(0) ne -1 then mltmeep(inmlt) = 1
+              meep = mltmeep*lsmeep
+              use = where(meep eq 1)
+              if use(0) ne -1 then begin
+                 polarden(i,j) = mean(den(use))
+              endif else begin
+                 polarden(i,j) = 0.
+              endelse
+           endfor                      
+        endfor
+
+
+;Here we are creating the average electron density for the EMIC wave
+;events occurring during the onset phase        
+        opolarden = fltarr(24., 10.)
+
+        for j = 0, n_elements(opolarden(0,*))-1 do begin
+           olsmeep = make_array(n_elements(oden), value = 0)
+           oinls = where((ols ge j) and (ols lt j+1))
+           if oinls(0) ne -1 then olsmeep(oinls) = 1
+           for i = 0, n_elements(opolarden(*,0))-1 do begin
+              omltmeep = make_array(n_elements(oden), value = 0)
+              oinmlt = where((omlt ge i) and (omlt lt i+1))
+              if oinmlt(0) ne -1 then omltmeep(oinmlt) = 1
+              omeep = omltmeep*olsmeep
+              ouse = where(omeep eq 1)
+;              print, 'use ', ouse(0)
+              if ouse(0) ne -1 then begin
+;                 print, mean(oden(ouse))
+                 opolarden(i,j) = mean(oden(ouse))
+              endif else begin
+                 opolarden(i,j) = 0.
+              endelse
+           endfor                      
+        endfor
+
+;here we are creating the average electron density for the EMIC wave
+;events occurring during the main phase        
+        mpolarden = fltarr(24., 10.)
+
+        for j = 0, n_elements(mpolarden(0,*))-1 do begin
+           mlsmeep = make_array(n_elements(mden), value = 0)
+           minls = where((mls ge j) and (mls lt j+1))
+           if minls(0) ne -1 then mlsmeep(minls) = 1
+           for i = 0, n_elements(mpolarden(*,0))-1 do begin
+              mmltmeep = make_array(n_elements(mden), value = 0)
+              minmlt = where((mmlt ge i) and (mmlt lt i+1))
+              if minmlt(0) ne -1 then mmltmeep(minmlt) = 1
+              mmeep = mmltmeep*mlsmeep
+              muse = where(mmeep eq 1)
+;              print, 'use ', muse(0)
+              if muse(0) ne -1 then begin
+;                 print, mean(mden(muse))
+                 mpolarden(i,j) = mean(mden(muse))
+              endif else begin
+                 mpolarden(i,j) = 0.
+              endelse
+           endfor                      
+        endfor
+        
+;Here we are creatting the average electron density for the EMIC wave
+;events occuring during the storm phase.
+        rpolarden = fltarr(24., 10.)
+
+        for j = 0, n_elements(rpolarden(0,*))-1 do begin
+           rlsmeep = make_array(n_elements(rden), value = 0)
+           rinls = where((rls ge j) and (rls lt j+1))
+           if rinls(0) ne -1 then rlsmeep(rinls) = 1
+           for i = 0, n_elements(rpolarden(*,0))-1 do begin
+              rmltmeep = make_array(n_elements(rden), value = 0)
+              rinmlt = where((rmlt ge i) and (rmlt lt i+1))
+              if rinmlt(0) ne -1 then rmltmeep(rinmlt) = 1
+              rmeep = rmltmeep*rlsmeep
+              ruse = where(rmeep eq 1)
+;              print, 'use ', ruse(0)
+              if ruse(0) ne -1 then begin
+;                 print, mean(rden(ruse))
+                 rpolarden(i,j) = mean(rden(ruse))
+              endif else begin
+                 rpolarden(i,j) = 0.
+              endelse
+           endfor                      
+        endfor
+
+
+        qden  = [hden90*quiet90, hden91*quiet91] ;q for quiet
+        qmlt = [hmlt90*quiet90, hmlt91*quiet91]
+        qls = [hls90*quiet90, hls91*quiet91]
+
+        sden  = [hden90*storm90, hden91*storm91] ;s for storm
+        smlt = [hmlt90*storm90, hmlt91*storm91]
+        sls = [hls90*storm90, hls91*storm91]
+
+        qpolarden = fltarr(24., 10.)
+        spolarden = fltarr(24., 10.)
+
+
+
+
+
+        for j = 0, n_elements(qpolarden(0,*))-1 do begin
+           lsmeep = make_array(n_elements(qden), value = 0)
+           inls = where((qls ge j) and (qls lt j+1))
+           if inls(0) ne -1 then lsmeep(inls) = 1
+           for i = 0, n_elements(qpolarden(*,0))-1 do begin
+              mltmeep = make_array(n_elements(qden), value = 0)
+              inmlt = where((qmlt ge i) and (qmlt lt i+1))
+              if inmlt(0) ne -1 then mltmeep(inmlt) = 1
+              meep = mltmeep*lsmeep
+              use = where(meep eq 1)
+              if use(0) ne -1 then begin
+                 qpolarden(i,j) = mean(qden(use))
+              endif else begin
+                 qpolarden(i,j) = 0.
+              endelse
+           endfor                      
+        endfor
+
+;Here we are creating the average electron density for storm time EMIC
+;wave events.
+
+        for j = 0, n_elements(spolarden(0,*))-1 do begin
+           lsmeep = make_array(n_elements(sden), value = 0)
+           inls = where((sls ge j) and (sls lt j+1))
+           if inls(0) ne -1 then lsmeep(inls) = 1
+           for i = 0, n_elements(spolarden(*,0))-1 do begin
+              mltmeep = make_array(n_elements(sden), value = 0)
+              inmlt = where((smlt ge i) and (smlt lt i+1))
+              if inmlt(0) ne -1 then mltmeep(inmlt) = 1
+              meep = mltmeep*lsmeep
+              use = where(meep eq 1)
+              if use(0) ne -1 then begin
+                 spolarden(i,j) = mean(sden(use))
+              endif else begin
+                 spolarden(i,j) = 0.
+              endelse
+           endfor                      
+        endfor
+
+
+
+
+        denrange = maxdensity ; max([polarden, opolarden, mpolarden, rpolarden, tpolarden]) + 1.
+        print, 'max range ', denrange
+
+        sysms = .5
+        ch = .8
+        tch = 1.5
+        sym = 4
+        ymin = -10
+        ymax = 10
+        xmin = -10
+        xmax = 10
+        sysms = .5
+        ;ch = .76
+        sym = 4
+        cl = 8
+        yout = 9.
+        xout = -12.
+        miny = -10
+        maxy = 10
+        minx = -12
+        maxx = 12
+        offset = 1.
+        syms = .25
+        noonx = -12
+        noony = 0.2
+        duskx = -4 
+        dusky = -9.8
+        ytit = ''
+        xtit = ''
+        ych = .05
+        xch = .05
+
+
+        !P.multi=[0,3,3]
+        set_plot, 'PS'
+        device, filename = '../../figures/AGU2009_den_polar.eps', /landscape, /color
+
+
+;Here we are plotting the storm events         
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. , yrange = [ymin, ymax], xrange = [xmin, xmax],$
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [0.,0.5,.3,1.], charsize = tch, $
+              title = 'CRRES EMIC Events', /isotropic, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+;        oplot, /polar,  hls91, hmlt91*(!pi/12.), psym = sym, symsize = syms
+;        print, polarden
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(tpolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(tpolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),(K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),(K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((tpolarden(kk,k)/denrange)*255.) ;color = 256.-((tpolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'a', charsize = 2
+        xyouts, duskx, dusky, 'Dusk', charsize = ch
+        xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+
+
+        ;*****************************************************
+                                ;Here we are plotting the density for quiet time  events         
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. ,$
+              yrange = [ymin, ymax], xrange = [xmin, xmax], charsize = tch,$
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [0.3,0.5,0.6,1.],  $
+              title = 'CRRES EMIC Non-Storm Time Events', /isotropic, xsty = 4, ysty = 4, $
+              ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(qpolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(qpolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),$
+                       (K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),$
+                        (K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((qpolarden(kk,k)/denrange)*255.) 
+                                ;color = 256.-((qpolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'b', charsize = 2
+;        xyouts, duskx, dusky, 'Dusk', charsize = ch
+;        xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), $
+                                 findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+
+
+        ;*****************************************************
+                                ;Here we are plotting the density for storm time  events         
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. ,$
+              yrange = [ymin, ymax], xrange = [xmin, xmax], charsize = tch, $
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [0.6,0.5,0.9,1.],  $
+              title = 'CRRES EMIC Storm Time Events', /isotropic, xsty = 4, ysty = 4, $
+              ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(spolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(spolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),$
+                       (K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),$
+                        (K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((spolarden(kk,k)/denrange)*255.) 
+                                ;color = 256.-((spolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'c', charsize = 2
+ ;       xyouts, duskx, dusky, 'Dusk', charsize = ch
+ ;       xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), $
+                                 findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+
+
+
+;Here we are plotting the onset events
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. , yrange = [ymin, ymax], xrange = [xmin, xmax],$
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [0.,0.0,.3,.5],  charsize = tch, $
+              title = 'Pre-Onset Phase', /isotropic, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+;        oplot, /polar,  hls91, hmlt91*(!pi/12.), psym = sym, symsize = syms
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(opolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(opolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),(K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),(K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((opolarden(kk,k)/denrange)*255.) ;color = 256.-((opolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'d', charsize = 2
+        xyouts, duskx, dusky, 'Dusk', charsize = ch
+        xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+
+;Here we are plotting the EMIC events during the main phase
+        loadct, 0        
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. , yrange = [ymin, ymax], xrange = [xmin, xmax],$
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [.3,0.,.6,.5], charsize = tch, $
+              title = 'Main Phase', /isotropic, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+;        oplot, /polar,  hls91, hmlt91*(!pi/12.), psym = sym, symsize = syms
+;        print, polarden
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(mpolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(mpolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),(K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),(K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((mpolarden(kk,k)/denrange)*255.) ;color = 256.-((mpolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'e', charsize = 2
+;        xyouts, duskx, dusky, 'Dusk', charsize = ch
+;        xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+
+
+;Here we are plotting the EMIC events during the recovery phase
+        loadct, 0        
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. , yrange = [ymin, ymax], xrange = [xmin, xmax],$
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [0.6,0.,.9,.5], charsize = tch, $
+              title = 'Recovery Phase', /isotropic, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+;        oplot, /polar,  hls91, hmlt91*(!pi/12.), psym = sym, symsize = syms
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(rpolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(rpolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),(K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),(K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((rpolarden(kk,k)/denrange)*255.) ;color = 256.-((rpolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'f', charsize = 2
+;        xyouts, duskx, dusky, 'Dusk', charsize = ch
+;        xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+    
+
+                                ;Here we create the color bar for the
+                                ;scaling length
+        loadct, 0
+        denrange = maxdensity
+                                ;max([hden90, hden91]) ; max([polarden, opolarden, mpolarden, rpolarden, tpolarden]) + 1.; max(polarden) 
+        print, 'max average density ', denrange
+        plot,findgen(10), findgen(denrange), pos = [.95,0.,1.,1.], yrange = [0,denrange], ystyle = 1, $
+             ytitle = 'electron density per a cubic centimeter', xcharsize = 0.01, ycharsize = tch
+       
+        loadct, cl, ncolors = max(255)
+        polyfill, [0,10,10,0], [0 ,0,1, 1], color = 255
+        for kk = 1l, floor(256.) -1. do begin
+           polyfill, [0,10,10,0], [(denrange/255)*kk,(denrange/255)*kk,(denrange/255)*(kk+1), (denrange/255)*(kk+1)], color = 254 - kk
+        endfor
+
+
+        device, /close_file
+        close, /all
+
+
+
+
+
+
+        cl = 0
+
+        !P.multi=[0,3,3]
+        set_plot, 'PS'
+        device, filename = '../../figures/AGU2009_den_polar_black_white.eps', /landscape, /color
+
+
+;Here we are plotting the storm events         
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. , yrange = [ymin, ymax], xrange = [xmin, xmax],$
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [0.,0.5,.3,1.], charsize = tch, $
+              title = 'CRRES EMIC Events', /isotropic, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+;        oplot, /polar,  hls91, hmlt91*(!pi/12.), psym = sym, symsize = syms
+;        print, polarden
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(tpolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(tpolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),(K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),(K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((tpolarden(kk,k)/denrange)*255.) ;color = 256.-((tpolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'a', charsize = 2
+        xyouts, duskx, dusky, 'Dusk', charsize = ch
+        xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+
+
+        ;*****************************************************
+                                ;Here we are plotting the density for quiet time  events         
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. ,$
+              yrange = [ymin, ymax], xrange = [xmin, xmax], charsize = tch,$
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [0.3,0.5,0.6,1.],  $
+              title = 'CRRES EMIC Non-Storm Time Events', /isotropic, xsty = 4, ysty = 4, $
+              ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(qpolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(qpolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),$
+                       (K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),$
+                        (K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((qpolarden(kk,k)/denrange)*255.) 
+                                ;color = 256.-((qpolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'b', charsize = 2
+;        xyouts, duskx, dusky, 'Dusk', charsize = ch
+;        xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), $
+                                 findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+
+
+        ;*****************************************************
+                                ;Here we are plotting the density for storm time  events         
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. ,$
+              yrange = [ymin, ymax], xrange = [xmin, xmax], charsize = tch, $
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [0.6,0.5,0.9,1.],  $
+              title = 'CRRES EMIC Storm Time Events', /isotropic, xsty = 4, ysty = 4, $
+              ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(spolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(spolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),$
+                       (K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),$
+                        (K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((spolarden(kk,k)/denrange)*255.) 
+                                ;color = 256.-((spolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'c', charsize = 2
+ ;       xyouts, duskx, dusky, 'Dusk', charsize = ch
+ ;       xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), $
+                                 findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+
+
+
+;Here we are plotting the onset events
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. , yrange = [ymin, ymax], xrange = [xmin, xmax],$
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [0.,0.0,.3,.5],  charsize = tch, $
+              title = 'Pre-Onset Phase', /isotropic, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+;        oplot, /polar,  hls91, hmlt91*(!pi/12.), psym = sym, symsize = syms
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(opolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(opolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),(K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),(K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((opolarden(kk,k)/denrange)*255.) ;color = 256.-((opolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'d', charsize = 2
+        xyouts, duskx, dusky, 'Dusk', charsize = ch
+        xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+
+;Here we are plotting the EMIC events during the main phase
+        loadct, 0        
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. , yrange = [ymin, ymax], xrange = [xmin, xmax],$
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [.3,0.,.6,.5], charsize = tch, $
+              title = 'Main Phase', /isotropic, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+;        oplot, /polar,  hls91, hmlt91*(!pi/12.), psym = sym, symsize = syms
+;        print, polarden
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(mpolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(mpolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),(K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),(K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((mpolarden(kk,k)/denrange)*255.) ;color = 256.-((mpolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'e', charsize = 2
+;        xyouts, duskx, dusky, 'Dusk', charsize = ch
+;        xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+
+
+;Here we are plotting the EMIC events during the recovery phase
+        loadct, 0        
+        plot, /polar,  make_array(360, value = 1), findgen(360)*2.*!pi/360. , yrange = [ymin, ymax], xrange = [xmin, xmax],$
+              xtitle = xtit, ytitle = ytit, symsize = syms, pos = [0.6,0.,.9,.5], charsize = tch, $
+              title = 'Recovery Phase', /isotropic, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+;        oplot, /polar,  hls91, hmlt91*(!pi/12.), psym = sym, symsize = syms
+        loadct, cl, ncolors = 255
+        for k = 0l, (n_elements(rpolarden(0,*))) - 1 do begin
+           for kk = 0l, (n_elements(rpolarden(*,0))) - 1 do begin 
+              xtemp = [k*cos(kk*!pi/12.),(K+1)*cos(kk*!pi/12.),(K+1)*cos((kk+1)*!pi/12.),(K)*cos((kk+1)*!pi/12.)]
+              ytemp =  [k*sin(kk*!pi/12.),(K+1)*sin(kk*!pi/12.),(K+1)*sin((kk+1)*!pi/12.),(K)*sin((kk+1)*!pi/12.)]
+              polyfill, xtemp, ytemp, color = 254. - ((rpolarden(kk,k)/denrange)*255.) ;color = 256.-((rpolarden(kk,k)/denrange)*256.)
+           endfor
+        endfor
+        loadct, 0        
+        xyouts, 9, 9,'f', charsize = 2
+;        xyouts, duskx, dusky, 'Dusk', charsize = ch
+;        xyouts, noonx, noony, 'Noon', charsize = ch        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360. ;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.   ;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize = ch
+        xyouts, 0.15, 3.1, '3 RE', charsize = ch
+        xyouts, 0.15, 9.1, '9 RE', charsize = ch
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+;        xyouts, -7.7, 0.5, '6.6 RE', charsize = ch
+;        xyouts, -4.1, 0.5, '3 RE', charsize = ch
+;        xyouts, -10.1, 0.5, '9 RE', charsize = ch
+
+    
+
+                                ;Here we create the color bar for the
+                                ;scaling length
+        loadct, 0
+        denrange = maxdensity
+                                ;max([hden90, hden91]) ; max([polarden, opolarden, mpolarden, rpolarden, tpolarden]) + 1.; max(polarden) 
+        print, 'max average density ', denrange
+        plot,findgen(10), findgen(denrange), pos = [.95,0.,1.,1.], yrange = [0,denrange], ystyle = 1, $
+             ytitle = 'electron density per a cubic centimeter', xcharsize = 0.01, ycharsize = tch
+       
+        loadct, cl, ncolors = max(255)
+        polyfill, [0,10,10,0], [0 ,0,1, 1], color = 255
+        for kk = 1l, floor(256.) -1. do begin
+           polyfill, [0,10,10,0], [(denrange/255)*kk,(denrange/255)*kk,(denrange/255)*(kk+1), (denrange/255)*(kk+1)], color = 254 - kk
+        endfor
+
+
+        device, /close_file
+        close, /all
+
+print, 'Average density', mean(tden, /nan)
+print, 'Average non storm time density', mean(qden, /nan)
+print, 'Average storm time density', mean(den, /nan)
+print, 'Average onset density', mean(oden, /nan)
+print, 'Average main density', mean(mden, /nan)
+print, 'Average recovery density', mean(rden, /nan)
+
+;stop
+
+end

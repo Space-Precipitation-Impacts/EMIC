@@ -1,0 +1,37 @@
+function quartiles, array1
+;This function creates the quartiles for a n by 4+ array. The user
+;should input the array as a function "return = quartiles(bigarray)"
+;and the returned value will be the array containing the 75 precent
+;quartile, the 25 % quartile, the mean, the median, and the standared
+;deviation. 
+  
+
+  ;here we are creating the needed 
+;  mean_n_u = make_array(n_elements(array1)) 
+;  prec24 = fltarr(n_elements(array1))
+;  prec50 = fltarr(n_elements(array1))
+;  prec75 = fltarr(n_elements(array1))
+;  stddevarray = fltarr(n_elements(array1))
+
+  ;here we are finding the quartiles and setting them in the array.
+     good = where(finite(array1), count)
+     n_set = count
+     p75 = long(75.*n_set/100.)
+     p25 = long(25.*N_set/100.)
+     
+     array = array1(good)
+;     array = array(good)
+     mean_n_u = mean(array)
+     prec50 = median(array)
+     ii = sort(array)
+     prec75 = array(ii(p75))
+     prec24 = array(ii(p25))
+     stddevarray = stddev(array)
+
+ returnarray = [prec75, prec24, mean_n_u, prec50, stddevarray]
+
+ return, returnarray
+
+
+
+end

@@ -1,0 +1,1486 @@
+pro norm_EMIC_den
+  
+; This program is specific to the CRRES mission and cuts the data and
+; normalizes it properly... I think although still checking
+; everything. As of July 14th 2009 there were a few questions with the
+; emic event times. Alexa Halford
+  
+;Here are a bunch of things needed for bits and pieces in the
+;program. 
+                                ;This is the length of the epoch
+                                ;around each EMIC wave
+  sepoch = 4.*60.                  ;The amount of time before the epoch time
+  eepoch = 4.*60.                  ;the amount of time after the epoch time
+  length = sepoch + eepoch + 1  ;the length of the epoch
+  buffer = 5;25.;30.;45.                  ;This is the buffer around events. In other words, if an
+                                ;event has others within this time
+                                ;period they will be errased and
+                                ;considered to be part of the first
+                                ;event. This is in min.   
+                                ;This is the event file for the storm
+                                ;phases, and followed by the folder
+                                ;paths for the figures, save files,
+                                ;templates, and the data folders
+  figurefolder = '../figures/'
+  savefolder = '../Savefiles/'
+  tempfolder = '../Templates/'
+  datafolder = '../Data/'
+  
+  
+                                ; Here we get the storm phase data open 
+  s1 = strpos('CRRES_storm_phases.txt','.')
+  file2 = strmid('CRRES_storm_phases.txt',0,s1)
+  file3 = strcompress('../Templates/'+file2+'_template.save')  
+                                ; Here we restoring and reaging in the
+                                ; storms and their phases during the
+                                ; CRRES mission.
+  restore, file3  
+  meep = read_ascii('../Data/CRRES_storm_phases.txt', template = template)
+  syear = meep.year
+  month = meep.month
+  day = meep.day
+  hh = meep.hour
+  mm = meep.mm
+  mmonth = meep.mmonth
+  mday = meep.mday
+  mhour = meep.mhour
+  mmm = meep.mmm
+  emonth = meep.emonth
+  eday = meep.eday
+  ehour = meep.ehour     
+  emm = meep.emm
+  minSymarray = make_array(N_elements(syear))
+  recovSymarray = make_array(N_elements(syear))
+  numberstorms = n_elements(syear)
+                                ;Here we restore the orbit file for
+                                ;the CRRES mission.
+  restore,'../Templates/CRRES_orbit_template.save'
+  beep = read_ascii('../Data/crres_orbit.txt', template = template)
+  CRorbit = beep.orbit
+  starttime = beep.start
+  CRdoy = beep.doy
+  cryear = beep.year
+                                ;Here we are creating the year long arrays for the CRRES data.
+                                ;This is Hu's list
+  restore, '../Templates/CRRES_emic_template.save'
+  jeep = read_ascii('../Data/CRRES_emic.txt', template = template)
+  UT = jeep.field13
+  orbit = jeep.field01
+  duration = jeep.field26
+  endUT = jeep.field18
+  numberEMIC = n_elements(ut)
+;  print, 'average duration', mean(duration)
+  doy = make_array(n_elements(orbit))
+  year = make_array(n_elements(orbit))
+                                ;Here we find the doy for each of the
+                                ;events and also create the year array
+                                ;as well.
+  for i = 0l, n_elements(orbit)-1 do begin
+     index = where(CRorbit eq orbit(i))
+     if index(0) ne -1 then doy(i) = crdoy(index(0)) $
+     else print, 'no match'
+                                ; I don't think that this is
+                                ; needed. The UT time (hour) when put
+                                ; into Julday should work out right.
+                                ; if Starttime(index) gt UT(i) then doy(i) = doy(i)+1.
+     year(i) = cryear(index(0))
+  endfor
+                                ;Here we are finding the indexes for
+                                ;the years 1990 and 1991
+  in90 = where(year eq 90)
+  in91 = where(year eq 91)
+                                ;Here we are creating the day of year
+                                ;(doy) and ut start (ut90(1)) and end
+                                ;(endut90(1)) time arrays for each year
+  doy90 = doy(in90) -1.         ; The -1 is because the year long arrays start with year 
+                                ;day of 0 instead of 1. It's an indexing problem. 
+  doy91 = doy(in91) -1.
+  ut90 = ut(in90)
+  ut91 = ut(in91)
+  endUT90 = endut(in90)
+  endut91 = endut(in91)
+                                ;Here we are creating the year long
+                                ;arrays for the EMIC
+                                ;events. syearminHu90(1) will have the
+                                ;duration of EMIC events where as
+                                ;oncrres90(1) will have just the
+                                ;onsets of the EMIC wave events.
+  syearminHu90 = make_array(365.*24.*60., value = 0) ;!Values.F_NAN)
+  syearminHu91 = syearminHu90
+  oncrres90 = syearminHu90
+  oncrres91 = syearminHu90
+                                ;In these for loops we are defining the
+                                ;EMIC wave events in the year long arrays.
+  for i = 0l, n_elements(UT90) -1 do begin
+                                ;Here we are puting a 1 where there is
+                                ;an EMIC wave event occuring (the
+                                ;whole duration).
+     syearminHu90(floor(((doy90(i)*24.*60.) + (Ut90(i)*60.))):floor(((doy90(i)*24.*60.) + (endUt90(i)*60.)))) = 1
+                                ;Here we are putting a 1 where the
+                                ;start of the EMIC wave is.
+     oncrres90((doy90(i)*24.*60.) + (Ut90(i)*60.)) = 1
+  endfor
+  for i = 0l, n_elements(UT91) -1 do begin
+                                ;This is the same as the above for
+                                ;loop but for 1991 instead of 1990.
+     syearminHu91(floor(((doy91(i)*24.*60.) + (Ut91(i)*60.))):Floor(((doy91(i)*24.*60.) + (endUt91(i)*60.)))) = 1
+     oncrres91((doy91(i)*24.*60.) + (Ut91(i)*60.)) = 1
+  endfor
+                                ;Here we will "remove" the
+                                ;emic's which are within the
+                                ;buffer of the other events. This is
+                                ;done since the pearl or pearl like
+                                ;events are very likely set off by the
+                                ;same generation mechanism. When the
+                                ;buffer is set to 0 then each event
+                                ;will be considered. 
+  restore, '../Data/CRRES_1min_1990.save'
+  restore, '../Data/CRRES_1min_1991.save'
+  xgrad = findgen(365.*24.*60.)
+  gradden90 = make_array(365.*24.*60., value = 0)
+  gradden91 = make_array(365.*24.*60., value = 0)
+  smden90 = smooth(den90, 10)
+  smden91 = smooth(den91, 10)
+  ;gradden90(0:n_elements(xgrad) -2) = $;smden90(1:N_Elements(xgrad)-1)-smden90(0:N_Elements(xgrad)-2) 
+  gradden90 = deriv(xgrad, den90)*500.
+  ;gradden91(0:n_elements(xgrad) -2) = smden91(1:N_Elements(xgrad)-1)-smden91(0:N_Elements(xgrad)-2) 
+  ;gradden90(N_elements(xgrad)-1) = gradden90(n_elements(xgrad)-2)
+  ;gradden91(N_elements(xgrad)-1) = gradden91(n_elements(xgrad)-2)
+  gradden91 = deriv(xgrad, den91)*500.
+  magdenslope90 = sqrt(gradden90^2.)
+  magdenslope91 = sqrt(gradden91^2.)
+;  stop
+  print, 'number of events to start with', n_elements(where(oncrres90 eq 1)) + n_elements(where(oncrres91 eq 1))
+  oncrres90 = same_event_cleaner(oncrres90, buffer, 0.) ;!values.F_NAN)
+  oncrres91 = same_event_cleaner(oncrres91, buffer, 0.) ;!values.F_NAN)
+  print, 'number of events after cleaning', n_elements(where(oncrres90 eq 1)) + n_elements(where(oncrres91 eq 1))
+  indexevents90 = where(oncrres90 eq 1)
+  indexevents91 = where(oncrres91 eq 1)
+  indexmlt90 = where((MLT90 ge 15.))
+  indexmlt91 = where((MLT91 ge 15.)); and (MLT91 le 24.))
+  mlt18_90 = make_array(365.*24.*60., value = !values.F_NAN)
+  mlt18_91 = mlt18_90
+  mlt18_90(indexmlt90) = 1
+  mlt18_91(indexmlt91) = 1
+  indexmlt90 = where((MLT90 le 3.))
+  indexmlt91 = where((MLT91 le 3.))
+  mlt18_90(indexmlt90) = 1
+  mlt18_91(indexmlt91) = 1
+;  set_plot, 'x'
+;  plot, mlt18_90
+  oncrres90 = oncrres90*mlt18_90
+  oncrres91 = oncrres91*mlt18_91
+  indexevents90 = where(oncrres90 eq 1)
+  indexevents91 = where(oncrres91 eq 1)
+  print, 'number of events after MLT picks', n_elements(where(oncrres90 eq 1)) + n_elements(where(oncrres91 eq 1))
+  if indexevents90(0) ne -1 then events90 =n_elements(where(oncrres90 eq 1)) else events90 = 0
+  if indexevents91(0) ne -1 then events91 =n_elements(where(oncrres91 eq 1)) else events91 = 0
+  events = events90 + events91
+                                ;Here we make the year array for the
+                                ;non-storm time events, storm time and
+                                ;the relavent phases. 
+  quiet90 = make_array(365.*24.*60., value = !values.F_NAN)
+  storm90 = make_array(365.*24.*60., value = !values.F_NAN)
+  onphase90 = make_array(365.*24.*60., value = !values.F_NAN)
+  mainphase90 = make_array(365.*24.*60., value = !values.F_NAN)
+  recovphase90 = make_array(365.*24.*60., value = !values.F_NAN)
+  quiet91 = make_array(365.*24.*60., value = !values.F_NAN)
+  storm91 = make_array(365.*24.*60., value = !values.F_NAN)
+  onphase91 = make_array(365.*24.*60., value = !values.F_NAN)
+  mainphase91 = make_array(365.*24.*60., value = !values.F_NAN)
+  recovphase91 = make_array(365.*24.*60., value = !values.F_NAN)
+;*************************************************************************************************************
+                                ;this for loop consists of us finding
+                                ;the storm time arrays and placing a 1
+                                ;where a storm (or the phase) is
+                                ;occurring in the year long arrays.
+  for k = 0l, n_elements(syear) - 1. do begin     
+                                ;Now we will first get all of the sym data cut into the proper pieces
+                                ;for each of the storm events.      
+     onyday = stand2yday(month(k), day(k), syear(k), hh(k), mm(k), 0.)
+     mainyday = stand2yday(mmonth(k), mday(k), syear(k), mhour(k), mmm(k), 0.)
+     recyday = stand2yday(emonth(k), eday(k), syear(k), ehour(k), emm(k), 0.)
+                                ;These are the start and end of the
+                                ;storms in fracdays. Again the
+                                ;-1's are there to find the
+                                ;correct index in the arrays. 
+     styday = onyday - (3./24.) -1.
+     onyday = onyday -1.
+     mainyday = mainyday -1.
+     recov = recyday -1.
+                                ;Here we put a 1 during the times when
+                                ;there is a storm.
+     if syear(k) eq 1990 then begin 
+        storm90(styday*24.*60.:recov*24.*60.) = 1
+        onphase90(styday*24.*60.:onyday*24.*60.-1) = 1
+        mainphase90(onyday*24.*60.:mainyday*24.*60.-1) = 1
+        recovphase90(mainyday*24.*60.:recov*24.*60.) = 1
+     endif
+     if syear(k) eq 1991 then begin 
+        storm91(styday*24.*60.:recov*24.*60.) = 1
+        onphase91(styday*24.*60.:onyday*24.*60.-1) = 1
+        mainphase91(onyday*24.*60.:mainyday*24.*60.-1) = 1
+        recovphase91(mainyday*24.*60.:recov*24.*60.) = 1
+     endif
+  endfor
+  nsindex90 = where(storm90 ne 1)
+  nsindex91 = where(storm91 ne 1)
+                                ;now we'll put a 1 where there
+                                ;is not a storm occurring. 
+  quiet90(nsindex90) = 1.
+  quiet91(nsindex91) = 1.
+                                ;Here we are finding our EMIC wave
+                                ;events for each phase first for 1990
+                                ;and then for 1991     
+;  if syear(k) eq 1990 then begin 
+  print, 'number of events', n_elements(where(oncrres90 eq 1)) + n_elements(where(oncrres91 eq 1))
+  qemic90 = oncrres90*quiet90
+  semic90 = oncrres90*storm90
+  oemic90 = oncrres90*onphase90
+  memic90 = oncrres90*mainphase90
+  remic90 = oncrres90*recovphase90
+;  endif
+;  if syear(k) eq 1991 then begin 
+  qemic91 = oncrres91*quiet91
+  semic91 = oncrres91*storm91
+  oemic91 = oncrres91*onphase91
+  memic91 = oncrres91*mainphase91
+  remic91 = oncrres91*recovphase91
+;  endif
+;********************************************************************************
+                                ;Here we are restoring the 1 min. data
+                                ;for CRRES (the position and density).
+  restore, '../Data/CRRES_1min_1990.save'
+                                ;now we'll start getting the
+                                ;1990 data and relavent stuff ready
+                                ;for the coming loop where we will be
+                                ;cutting all the data for the epochs
+  restore, '../Data/kyoto_Sym_1990.save'
+  restore, '../Data/kyoto_ALAU_1990.save'
+  restore, '../Data/kp_CDAWeb1990.save'
+                                ;These arrays have the number of EMIC
+                                ;events and the length of the epoch
+                                ;times. These will be used to create
+                                ;the superpose epochs later in the program.
+  all_sym = make_array(events, length)
+  all_kp = make_array(events, length)
+  all_den =  make_array(events, length)
+  all_gradden =  make_array(events, length)
+  all_gradden2 =  make_array(events, length)
+  all_AL =  make_array(events, length)
+                                ;here we (once again) find where the
+                                ;emic waves are located for each of
+                                ;the situations (non-storm, storm,
+                                ;ect.)
+  print, 'number of events in 1990', n_elements(where(oncrres90 eq 1)) 
+  print, 'number of events in 1991',n_elements(where(oncrres91 eq 1))
+  index90 = where(oncrres90 eq 1.)
+  index90q = where(qemic90 eq 1.)
+  index90s = where(semic90 eq 1.)
+  index90o = where(oemic90 eq 1.)
+  index90m = where(memic90 eq 1.)
+  index90r = where(remic90 eq 1.)
+  index91 = where(oncrres91 eq 1.)
+  index91q = where(qemic91 eq 1.)
+  index91s = where(semic91 eq 1.)
+  index91o = where(oemic91 eq 1.)
+  index91m = where(memic91 eq 1.)
+  index91r = where(remic91 eq 1.)
+  if index90(0) ne -1 then begin
+     for i = 0l, n_elements(index90)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+        temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+                                ;now that we have the epoch times, we
+                                ;can put 1's around the epoch
+                                ;for the times that we want to look
+                                ;at.
+        temp(index90(i)-sepoch:index90(i)+eepoch) = 1
+                                ;Now we can multiply this year array
+                                ;with Nan's where there is no
+                                ;event time that we want to look at by
+                                ;the year arrays for the relavent data
+        tempsym = temp*sym
+        tempkp = temp*kp
+        tempAL = temp*AL
+        tempden = temp*den90
+        tempgrad = temp*gradden90
+        tempgrad2 = temp*magdenslope90
+                                ;Here we find where the event was so
+                                ;that we can put it into the arrays
+                                ;that will contain all the events of
+                                ;this type. In this case all of the
+                                ;observed EMIC events
+        stuff = where(finite(tempsym))
+                                ;Now we cut each of the data arrays
+                                ;and only put in where we have the data
+        all_sym(i,*) = tempsym(stuff)
+        all_kp(i,*) = tempkp(Stuff)
+        all_den(i,*) = tempden(stuff)
+        all_AL(i,*) = tempAL(stuff)
+        all_gradden(i,*) = tempgrad(stuff)
+        all_gradden2(i,*) = tempgrad2(stuff)
+     endfor
+  endif
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during quiet times
+  if index90q(0) ne -1 then qevents90 = n_elements(index90q) else qevents90 = 0
+  if index91q(0) ne -1 then qevents91 = n_elements(index91q) else qevents91 = 0 
+  q_sym = make_array(qevents90 + qevents91, length)
+  q_kp = q_sym
+  q_den = q_sym
+  q_AL = q_sym
+  q_grad = q_sym
+  q_grad2 = q_sym
+  if index90q(0) ne -1 then begin
+     for i = 0l, n_elements(index90q)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+        temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+        temp(index90q(i)-sepoch:index90q(i)+eepoch) = 1
+        tempsym = temp*sym
+        tempkp = temp*kp
+        tempAL = temp*AL
+        tempden = temp*den90
+        tempgrad = temp*gradden90
+        tempgrad2 = temp*magdenslope90
+        stuff = where(finite(tempsym))
+        q_sym(i,*) = tempsym(stuff)
+        q_kp(i,*) = tempkp(Stuff)
+        q_den(i,*) = tempden(stuff)
+        q_AL(i,*) = tempAL(stuff)
+        q_grad(i,*) = tempgrad(Stuff)
+        q_grad2(i,*) = tempgrad2(stuff)
+     endfor
+  endif
+                                ;Here we do the same thing for the
+                                ;EMIC waves which were observed during
+                                ;storm conditions
+  if index90s(0) ne -1 then sevents90 = n_elements(index90s) else sevents90 = 0
+  if index91s(0) ne -1 then sevents91 = n_elements(index91s) else sevents91 = 0 
+  s_sym = make_array(sevents90 + sevents91, length)
+  s_kp = s_sym
+  s_den = s_sym
+  s_AL = s_sym
+  s_grad = s_sym
+  s_grad2 = s_sym
+  if index90s(0) ne -1 then begin 
+     for i = 0l, n_elements(index90s)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+        temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+        temp(index90s(i)-sepoch:index90s(i)+eepoch) = 1
+        tempsym = temp*sym
+        tempkp = temp*kp
+        tempAL = temp*AL
+        tempden = temp*den90
+        tempgrad = temp*gradden90
+        tempgrad2 = temp*magdenslope90
+        stuff = where(finite(tempsym))
+        s_sym(i,*) = tempsym(stuff)
+        s_kp(i,*) = tempkp(Stuff)
+        s_den(i,*) = tempden(stuff)
+        s_AL(i,*) = tempAL(stuff)
+        s_grad(i,*) = tempgrad(Stuff)
+        s_grad2(i,*) = tempgrad2(stuff)
+     endfor
+  endif
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the pre-onset phase of the storm.
+  if index90o(0) ne -1 then oevents90 = n_elements(index90o) else oevents90 = 0
+  if index91o(0) ne -1 then oevents91 = n_elements(index91o) else oevents91 = 0 
+  o_sym = make_array(oevents90 + oevents91, length)
+  o_kp = o_sym
+  o_den = o_sym
+  o_AL = o_sym
+  o_grad = o_sym
+  o_grad2 = o_sym
+  if index90o(0) ne -1 then begin
+     for i = 0l, n_elements(index90o)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+        temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+        temp(index90o(i)-sepoch:index90o(i)+eepoch) = 1
+        tempsym = temp*sym
+        tempkp = temp*kp
+        tempAL = temp*AL
+        tempden = temp*den90
+        tempgrad = temp*gradden90
+        tempgrad2 = temp*magdenslope90
+        stuff = where(finite(tempsym))
+        o_sym(i,*) = tempsym(stuff)
+        o_kp(i,*) = tempkp(Stuff)
+        o_den(i,*) = tempden(stuff)
+        o_AL(i,*) = tempAL(stuff)
+        o_grad(i,*) = tempgrad(Stuff)
+        o_grad2(i,*) = tempgrad2(stuff)
+     endfor
+  endif
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the main phase of the storm.
+  if index90m(0) ne -1 then mevents90 = n_elements(index90m) else mevents90 = 0
+  if index91m(0) ne -1 then mevents91 = n_elements(index91m) else mevents91 = 0 
+  m_sym = make_array(mevents90 + mevents91, length)
+  m_kp = m_Sym
+  m_den = m_sym
+  m_AL = m_sym
+  m_grad = m_sym
+  m_grad2 = m_sym
+  if index90m(0) ne -1 then begin
+     for i = 0l, n_elements(index90m)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+        temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+        temp(index90m(i)-sepoch:index90m(i)+eepoch) = 1
+        tempsym = temp*sym
+        tempkp = temp*kp
+        tempAL = temp*AL
+        tempden = temp*den90
+        tempgrad = temp*gradden90
+        tempgrad2 = temp*magdenslope90
+        stuff = where(finite(tempsym))
+        m_sym(i,*) = tempsym(stuff)
+        m_kp(i,*) = tempkp(Stuff)
+        m_den(i,*) = tempden(stuff)
+        m_AL(i,*) = tempAL(stuff)
+        m_grad(i,*) = tempgrad(Stuff)
+        m_grad2(i,*) = tempgrad2(stuff)
+     endfor
+  endif
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the recovery phase of the storm.
+  if index90r(0) ne -1 then revents90 = n_elements(index90r) else revents90 = 0
+  if index91r(0) ne -1 then revents91 = n_elements(index91r) else revents91 = 0 
+  r_sym = make_array(revents90 + revents91, length)
+  r_kp = r_sym
+  r_den = r_sym
+  r_AL = r_sym
+  r_grad = r_sym
+  r_grad2 = r_sym
+  if index90r(0) ne -1 then begin
+     for i = 0l, n_elements(index90r)-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+        temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+        temp(index90r(i)-sepoch:index90r(i)+eepoch) = 1
+        tempsym = temp*sym
+        tempkp = temp*kp
+        tempAL = temp*AL
+        tempden = temp*den90
+        tempgrad = temp*gradden90
+        tempgrad2 = temp*magdenslope90
+        stuff = where(finite(tempsym))
+        r_sym(i,*) = tempsym(stuff)
+        r_kp(i,*) = tempkp(Stuff)
+        r_den(i,*) = tempden(stuff)
+        r_AL(i,*) = tempAL(stuff)
+        r_grad(i,*) = tempgrad(Stuff)
+        r_grad2(i,*) = tempgrad2(stuff)     
+     endfor
+  endif
+                                ;Here we restore the 1991 data
+  restore, '../Data/CRRES_1min_1991.save'
+  restore, '../Data/kyoto_Sym_1991.save'
+  restore, '../Data/kp_CDAWeb1991.save'
+                                ;Now we do most of it all again for
+                                ;the year 1991.
+  if index90(0) ne -1 then startindex = n_elements(index90) else startindex = 0
+  for i = startindex, n_elements(all_sym(*,0))-1 do begin ;something needs to be done with i. 
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91(i-startindex)-sepoch:index91(i-startindex)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     tempgrad = temp*gradden90
+     tempgrad2 = temp*magdenslope90
+     stuff = where(finite(tempsym))
+     all_sym(i,*) = tempsym(stuff)
+     all_kp(i,*) = tempkp(Stuff)
+     all_den(i,*) = tempden(stuff)
+     all_AL(i,*) = tempAL(stuff)
+     all_gradden(i,*) = tempgrad(stuff)
+     all_gradden2(i,*) = tempgrad2(stuff)
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during quiet times
+  if index90q(0) ne -1 then startindex = n_elements(index90q) else startindex = 0
+  for i = startindex, n_elements(q_sym(*,0))-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91q(i-startindex)-sepoch:index91q(i-startindex)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     tempgrad = temp*gradden90
+     tempgrad2 = temp*magdenslope90
+     stuff = where(finite(tempsym))
+     q_sym(i,*) = tempsym(stuff)
+     q_kp(i,*) = tempkp(Stuff)
+     q_den(i,*) = tempden(stuff)
+     q_AL(i,*) = tempAL(stuff)
+     q_grad(i,*) = tempgrad(Stuff)
+     q_grad2(i,*) = tempgrad2(stuff)     
+  endfor
+                                ;Here we do the same thing for the
+                                ;EMIC waves which were observed during
+                                ;storm conditions
+  if index90s(0) ne -1 then startindex = n_elements(index90s) else startindex = 0
+  for i = startindex, n_elements(s_sym(*,0))-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91s(i-startindex)-sepoch:index91s(i-startindex)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     tempgrad = temp*gradden90
+     tempgrad2 = temp*magdenslope90
+     stuff = where(finite(tempsym))
+     s_sym(i,*) = tempsym(stuff)
+     s_kp(i,*) = tempkp(Stuff)
+     s_den(i,*) = tempden(stuff)
+     s_AL(i,*) = tempAL(stuff)
+     s_grad(i,*) = tempgrad(Stuff)
+     s_grad2(i,*) = tempgrad2(stuff)     
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the pre-onset phase of the storm.
+  if index90o(0) ne -1 then startindex = n_elements(index90o) else startindex = 0
+  for i = startindex, n_elements(o_sym(*,0))-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91o(i-startindex)-sepoch:index91o(i-startindex)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     tempgrad = temp*gradden90
+     tempgrad2 = temp*magdenslope90
+     stuff = where(finite(tempsym))
+     o_sym(i,*) = tempsym(stuff)
+     o_kp(i,*) = tempkp(Stuff)
+     o_den(i,*) = tempden(stuff)
+     o_AL(i,*) = tempAL(stuff)
+     o_grad(i,*) = tempgrad(Stuff)
+     o_grad2(i,*) = tempgrad2(stuff)     
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the main phase of the storm.
+  if index90m(0) ne -1 then startindex = n_elements(index90m) else startindex = 0
+  for i = startindex, n_elements(m_sym(*,0))-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91m(i-startindex)-sepoch:index91m(i-startindex)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     tempgrad = temp*gradden90
+     tempgrad2 = temp*magdenslope90
+     stuff = where(finite(tempsym))
+     m_sym(i,*) = tempsym(stuff)
+     m_kp(i,*) = tempkp(Stuff)
+     m_den(i,*) = tempden(stuff)
+     m_AL(i,*) = tempAL(stuff)
+     m_grad(i,*) = tempgrad(Stuff)
+     m_grad2(i,*) = tempgrad2(stuff)     
+  endfor
+                                ; Here we do the same thing for the
+                                ; EMIC waves which were observed
+                                ; during the recovery phase of the storm.
+  if index90r(0) ne -1 then startindex = n_elements(index90r) else startindex = 0
+  for i = startindex, n_elements(r_sym(*,0))-1 do begin
+                                ;this dummy variable is used to
+                                ;identify the start times of all the
+                                ;EMIC wave events.
+     temp = make_array(365.*24.*60., value = !Values.F_NAN)  
+     temp(index91r(i-startindex)-sepoch:index91r(i-startindex)+eepoch) = 1
+     tempsym = temp*sym
+     tempkp = temp*kp
+     tempAL = temp*AL
+     tempden = temp*den90
+     tempgrad = temp*gradden90
+     tempgrad2 = temp*magdenslope90
+     stuff = where(finite(tempsym))
+     r_sym(i,*) = tempsym(stuff)
+     r_kp(i,*) = tempkp(Stuff)
+     r_den(i,*) = tempden(stuff)
+     r_AL(i,*) = tempAL(stuff)
+     r_grad(i,*) = tempgrad(Stuff)
+     r_grad2(i,*) = tempgrad2(stuff)     
+  endfor
+;***************************************************************************************************
+
+;;                                ;before plotting we'll find the
+;                                ;mean, median, and the quartiles
+;;                                ;using the function quartiles
+ ;                               ;"result = quartiles(array1)
+;                                ;and gives the result as an array
+;                                ;containing [prec75, prec24, mean_n-u,
+;                                ;prec50, stddevarray]. This has to be
+;                                ;done at each point. 
+  mean_all_Sym = make_array(n_elements(all_sym(0,*)))
+  median_all_Sym =  mean_all_Sym
+  p75_all_Sym =  mean_all_Sym
+  p25_all_Sym =  mean_all_Sym
+  mean_all_kp =  mean_all_Sym
+  median_all_kp =  mean_all_Sym
+  p75_all_kp =  mean_all_Sym
+  p25_all_kp =  mean_all_Sym
+  mean_all_AL =  mean_all_Sym
+  median_all_AL =   mean_all_Sym
+  p75_all_AL =  mean_all_Sym
+  p25_all_AL =   mean_all_Sym
+  mean_all_den =  mean_all_Sym
+  median_all_den =  mean_all_Sym
+  p75_all_den =  mean_all_Sym
+  p25_all_den =  mean_all_Sym
+  mean_all_grad =  mean_all_Sym
+  median_all_grad =  mean_all_Sym
+  p75_all_grad =  mean_all_Sym
+  p25_all_grad =  mean_all_Sym
+  mean_all_grad2 =  mean_all_Sym
+  median_all_grad2 =  mean_all_Sym
+  p75_all_grad2 =  mean_all_Sym
+  p25_all_grad2 =  mean_all_Sym
+  for j = 0l, N_elements(all_sym(0,*))-1 do begin 
+     symresult = quartiles(all_sym(*,j))
+     kpresult = quartiles(all_kp(*,j))
+     ALresult = quartiles(all_AL(*,j))
+     denresult = quartiles(all_den(*,j))     
+     gradresult = quartiles(all_gradden(*,j))     
+     grad2result = quartiles(all_gradden2(*,j))     
+     p75_all_sym(j) = symresult(0)
+     p25_all_sym(j) = symresult(1)
+     mean_all_sym(j) = symresult(2)
+     median_all_Sym(j) = symresult(3)
+     p75_all_kp(j) = kpresult(0)
+     p25_all_kp(j) = kpresult(1)
+     mean_all_kp(j) = kpresult(2)
+     median_all_kp(j) = kpresult(3)
+     p75_all_AL(j) = ALresult(0)
+     p25_all_AL(j) = ALresult(1)
+     mean_all_AL(j) = ALresult(2)
+     median_all_AL(j) = ALresult(3)
+     p75_all_den(j) = denresult(0)
+     p25_all_den(j) = denresult(1)
+     mean_all_den(j) = denresult(2)
+     median_all_den(j) = denresult(3)
+     p75_all_grad(j) = gradresult(0)
+     p25_all_grad(j) = gradresult(1)
+     mean_all_grad(j) = gradresult(2)
+     median_all_grad(j) = gradresult(3)
+     p75_all_grad2(j) = grad2result(0)
+     p25_all_grad2(j) = grad2result(1)
+     mean_all_grad2(j) = grad2result(2)
+     median_all_grad2(j) = grad2result(3)
+  endfor
+  avedenall =  quartiles(mean_all_den)     
+  print, 'average all EMIC dens', avedenall
+                                ;Here we do the same for quiet time.
+  mean_q_Sym = make_array(n_elements(q_sym(0,*)))
+  median_q_Sym =mean_q_sym 
+  p75_q_Sym = mean_q_sym
+  p25_q_Sym = mean_q_sym 
+  mean_q_kp = mean_q_sym
+  median_q_kp = mean_q_sym
+  p75_q_kp = mean_q_sym 
+  p25_q_kp = mean_q_sym
+  mean_q_AL = mean_q_sym 
+  median_q_AL = mean_q_sym
+  p75_q_AL = mean_q_sym
+  p25_q_AL = mean_q_sym
+  mean_q_den = mean_q_sym
+  median_q_den = mean_q_sym
+  p75_q_den = mean_q_sym
+  p25_q_den = mean_q_sym
+  mean_q_grad = mean_q_sym
+  median_q_grad = mean_q_sym
+  p75_q_grad = mean_q_sym
+  p25_q_grad = mean_q_sym  
+  mean_q_grad2 = mean_q_sym
+  median_q_grad2 = mean_q_sym
+  p75_q_grad2 = mean_q_sym
+  p25_q_grad2 = mean_q_sym
+  for j = 0l, N_elements(q_sym(0,*))-1 do begin 
+     symresult = quartiles(q_sym(*,j))
+     kpresult = quartiles(q_kp(*,j))
+     ALresult = quartiles(q_AL(*,j))
+     denresult = quartiles(q_den(*,j))     
+     p75_q_sym(j) = symresult(0)
+     p25_q_sym(j) = symresult(1)
+     mean_q_sym(j) = symresult(2)
+     median_q_Sym(j) = symresult(3)
+     p75_q_kp(j) = kpresult(0)
+     p25_q_kp(j) = kpresult(1)
+     mean_q_kp(j) = kpresult(2)
+     median_q_kp(j) = kpresult(3)
+     p75_q_AL(j) = ALresult(0)
+     p25_q_AL(j) = ALresult(1)
+     mean_q_AL(j) = ALresult(2)
+     median_q_AL(j) = ALresult(3)
+     p75_q_den(j) = denresult(0)
+     p25_q_den(j) = denresult(1)
+     mean_q_den(j) = denresult(2)
+     median_q_den(j) = denresult(3)     
+     p75_q_grad(j) = gradresult(0)
+     p25_q_grad(j) = gradresult(1)
+     mean_q_grad(j) = gradresult(2)
+     median_q_grad(j) = gradresult(3)     
+     p75_q_grad2(j) = grad2result(0)
+     p25_q_grad2(j) = grad2result(1)
+     mean_q_grad2(j) = grad2result(2)
+     median_q_grad2(j) = grad2result(3)     
+  endfor
+  avedenq =  quartiles(mean_q_den)     
+  print, 'average quiet EMIC dens', avedenq
+                                ;Here we find teh quartiles and such
+                                ;for storm time events
+  mean_s_Sym = make_array(n_elements(s_sym(0,*)))
+  median_s_Sym = mean_s_Sym
+  p75_s_Sym = mean_s_Sym
+  p25_s_Sym = mean_s_Sym
+  mean_s_kp = mean_s_Sym
+  median_s_kp = mean_s_Sym
+  p75_s_kp = mean_s_Sym
+  p25_s_kp = mean_s_Sym
+  mean_s_AL = mean_s_Sym
+  median_s_AL =  mean_s_Sym
+  p75_s_AL = mean_s_Sym
+  p25_s_AL =  mean_s_Sym
+  mean_s_den = mean_s_Sym
+  median_s_den = mean_s_Sym
+  p75_s_den = mean_s_Sym
+  p25_s_den = mean_s_Sym
+  mean_s_grad = mean_s_sym
+  median_s_grad = mean_s_sym
+  p75_s_grad = mean_s_sym
+  p25_s_grad = mean_s_sym  
+  mean_s_grad2 = mean_s_sym
+  median_s_grad2 = mean_s_sym
+  p75_s_grad2 = mean_s_sym
+  p25_s_grad2 = mean_s_sym
+  for j = 0l, N_elements(s_sym(0,*)) -1 do begin 
+     symresult = quartiles(s_sym(*,j))
+     kpresult = quartiles(s_kp(*,j))
+     ALresult = quartiles(s_AL(*,j))
+     denresult = quartiles(s_den(*,j))     
+     p75_s_sym(j) = symresult(0)
+     p25_s_sym(j) = symresult(1)
+     mean_s_sym(j) = symresult(2)
+     median_s_Sym(j) = symresult(3)
+     p75_s_kp(j) = kpresult(0)
+     p25_s_kp(j) = kpresult(1)
+     mean_s_kp(j) = kpresult(2)
+     median_s_kp(j) = kpresult(3)
+     p75_s_AL(j) = ALresult(0)
+     p25_s_AL(j) = ALresult(1)
+     mean_s_AL(j) = ALresult(2)
+     median_s_AL(j) = ALresult(3)
+     p75_s_den(j) = denresult(0)
+     p25_s_den(j) = denresult(1)
+     mean_s_den(j) = denresult(2)
+     median_s_den(j) = denresult(3)
+     p75_s_grad(j) = gradresult(0)
+     p25_s_grad(j) = gradresult(1)
+     mean_s_grad(j) = gradresult(2)
+     median_s_grad(j) = gradresult(3)     
+     p75_s_grad2(j) = grad2result(0)
+     p25_s_grad2(j) = grad2result(1)
+     mean_s_grad2(j) = grad2result(2)
+     median_s_grad2(j) = grad2result(3)     
+  endfor
+  avedens =  quartiles(mean_s_den)     
+  print, 'average storm EMIC dens', avedens
+                                ;Here we find the quartiles for the
+                                ;pre-onset events
+  mean_o_Sym = make_array(n_elements(o_sym(0,*)))
+  median_o_Sym = mean_o_Sym
+  p75_o_Sym = mean_o_Sym
+  p25_o_Sym = mean_o_Sym
+  mean_o_kp = mean_o_Sym
+  median_o_kp = mean_o_Sym
+  p75_o_kp = mean_o_Sym
+  p25_o_kp = mean_o_Sym
+  mean_o_AL = mean_o_Sym
+  median_o_AL =  mean_o_Sym
+  p75_o_AL = mean_o_Sym
+  p25_o_AL =  mean_o_Sym
+  mean_o_den = mean_o_Sym
+  median_o_den = mean_o_Sym
+  p75_o_den = mean_o_Sym
+  p25_o_den = mean_o_Sym
+  mean_o_grad = mean_o_sym
+  median_o_grad = mean_o_sym
+  p75_o_grad = mean_o_sym
+  p25_o_grad = mean_o_sym  
+  mean_o_grad2 = mean_o_sym
+  median_o_grad2 = mean_o_sym
+  p75_o_grad2 = mean_o_sym
+  p25_o_grad2 = mean_o_sym
+  for j = 0l, N_elements(o_sym(0,*)) -1 do begin 
+     symresult = quartiles(o_sym(*,j))
+     kpresult = quartiles(o_kp(*,j))
+     ALresult = quartiles(o_AL(*,j))
+     if n_elements(where(finite(o_den(*,j)))) gt 1 then  denresult = quartiles(o_den(*,j))
+     p75_o_sym(j) = symresult(0)
+     p25_o_sym(j) = symresult(1)
+     mean_o_sym(j) = symresult(2)
+     median_o_Sym(j) = symresult(3)
+     p75_o_kp(j) = kpresult(0)
+     p25_o_kp(j) = kpresult(1)
+     mean_o_kp(j) = kpresult(2)
+     median_o_kp(j) = kpresult(3)
+     p75_o_AL(j) = ALresult(0)
+     p25_o_AL(j) = ALresult(1)
+     mean_o_AL(j) = ALresult(2)
+     median_o_AL(j) = ALresult(3)
+     p75_o_den(j) = denresult(0)
+     p25_o_den(j) = denresult(1)
+     mean_o_den(j) = denresult(2)
+     median_o_den(j) = denresult(3)     
+     p75_o_grad(j) = gradresult(0)
+     p25_o_grad(j) = gradresult(1)
+     mean_o_grad(j) = gradresult(2)
+     median_o_grad(j) = gradresult(3)     
+     p75_o_grad2(j) = grad2result(0)
+     p25_o_grad2(j) = grad2result(1)
+     mean_o_grad2(j) = grad2result(2)
+     median_o_grad2(j) = grad2result(3)     
+  endfor
+  avedeno =  quartiles(mean_o_den)     
+  print, 'average pre-onset EMIC dens', avedeno
+                                ; Here we find the quartiles for the
+                                ; main phase EMIC wave events
+  mean_m_Sym = make_array(n_elements(m_sym(0,*)))
+  median_m_Sym = mean_m_Sym 
+  p75_m_Sym = mean_m_Sym 
+  p25_m_Sym = mean_m_Sym 
+  mean_m_kp = mean_m_Sym 
+  median_m_kp = mean_m_Sym 
+  p75_m_kp = mean_m_Sym 
+  p25_m_kp = mean_m_Sym 
+  mean_m_AL = mean_m_Sym 
+  median_m_AL =  mean_m_Sym 
+  p75_m_AL = mean_m_Sym 
+  p25_m_AL =  mean_m_Sym 
+  mean_m_den = mean_m_Sym 
+  median_m_den = mean_m_Sym 
+  p75_m_den = mean_m_Sym 
+  p25_m_den = mean_m_Sym 
+  mean_m_grad = mean_m_sym
+  median_m_grad = mean_m_sym
+  p75_m_grad = mean_m_sym
+  p25_m_grad = mean_m_sym  
+  mean_m_grad2 = mean_m_sym
+  median_m_grad2 = mean_m_sym
+  p75_m_grad2 = mean_m_sym
+  p25_m_grad2 = mean_m_sym
+  for j = 0l, N_elements(m_sym(0,*))-1 do begin 
+     symresult = quartiles(m_sym(*,j))
+     kpresult = quartiles(m_kp(*,j))
+     ALresult = quartiles(m_AL(*,j))
+     denresult = quartiles(m_den(*,j))     
+     p75_m_sym(j) = symresult(0)
+     p25_m_sym(j) = symresult(1)
+     mean_m_sym(j) = symresult(2)
+     median_m_Sym(j) = symresult(3)
+     p75_m_kp(j) = kpresult(0)
+     p25_m_kp(j) = kpresult(1)
+     mean_m_kp(j) = kpresult(2)
+     median_m_kp(j) = kpresult(3)
+     p75_m_AL(j) = ALresult(0)
+     p25_m_AL(j) = ALresult(1)
+     mean_m_AL(j) = ALresult(2)
+     median_m_AL(j) = ALresult(3)
+     p75_m_den(j) = denresult(0)
+     p25_m_den(j) = denresult(1)
+     mean_m_den(j) = denresult(2)
+     median_m_den(j) = denresult(3)
+     p75_m_grad(j) = gradresult(0)
+     p25_m_grad(j) = gradresult(1)
+     mean_m_grad(j) = gradresult(2)
+     median_m_grad(j) = gradresult(3)     
+     p75_m_grad2(j) = grad2result(0)
+     p25_m_grad2(j) = grad2result(1)
+     mean_m_grad2(j) = grad2result(2)
+     median_m_grad2(j) = grad2result(3)     
+  endfor
+  avedenm =  quartiles(mean_m_den)     
+  print, 'average median EMIC dens', avedenm
+                                ; Here we find the quartiles for the
+                                ; main phase EMIC wave events
+  mean_r_Sym = make_array(n_elements(r_sym(0,*)))
+  median_r_Sym = mean_r_Sym
+  p75_r_Sym = mean_r_Sym
+  p25_r_Sym = mean_r_Sym
+  mean_r_kp = mean_r_Sym
+  median_r_kp = mean_r_Sym
+  p75_r_kp = mean_r_Sym
+  p25_r_kp = mean_r_Sym
+  mean_r_AL = mean_r_Sym
+  median_r_AL =  mean_r_Sym
+  p75_r_AL = mean_r_Sym
+  p25_r_AL =  mean_r_Sym
+  mean_r_den = mean_r_Sym
+  median_r_den = mean_r_Sym
+  p75_r_den = mean_r_Sym
+  p25_r_den = mean_r_Sym
+  mean_r_grad = mean_r_sym
+  median_r_grad = mean_r_sym
+  p75_r_grad = mean_r_sym
+  p25_r_grad = mean_r_sym  
+  mean_r_grad2 = mean_r_sym
+  median_r_grad2 = mean_r_sym
+  p75_r_grad2 = mean_r_sym
+  p25_r_grad2 = mean_r_sym
+  for j = 0l, N_elements(r_sym(0,*)) -1 do begin 
+     symresult = quartiles(r_sym(*,j))
+     kpresult = quartiles(r_kp(*,j))
+     ALresult = quartiles(r_AL(*,j))
+     denresult = quartiles(r_den(*,j))     
+     p75_r_sym(j) = symresult(0)
+     p25_r_sym(j) = symresult(1)
+     mean_r_sym(j) = symresult(2)
+     median_r_Sym(j) = symresult(3)
+     p75_r_kp(j) = kpresult(0)
+     p25_r_kp(j) = kpresult(1)
+     mean_r_kp(j) = kpresult(2)
+     median_r_kp(j) = kpresult(3)
+     p75_r_AL(j) = ALresult(0)
+     p25_r_AL(j) = ALresult(1)
+     mean_r_AL(j) = ALresult(2)
+     median_r_AL(j) = ALresult(3)
+     p75_r_den(j) = denresult(0)
+     p25_r_den(j) = denresult(1)
+     mean_r_den(j) = denresult(2)
+     median_r_den(j) = denresult(3)     
+     p75_r_grad(j) = gradresult(0)
+     p25_r_grad(j) = gradresult(1)
+     mean_r_grad(j) = gradresult(2)
+     median_r_grad(j) = gradresult(3)     
+     p75_r_grad2(j) = grad2result(0)
+     p25_r_grad2(j) = grad2result(1)
+     mean_r_grad2(j) = grad2result(2)
+     median_r_grad2(j) = grad2result(3)     
+  endfor
+  avedenr =  quartiles(mean_r_den)     
+  print, 'average recovery EMIC dens', avedenr
+;*************************************************************************************
+                                ;This is the values that are the same
+                                ;for all the plots
+  ch = 2.
+                                ;here we start plotting. first we want
+                                ;to find all the ranges so that we can
+                                ;plot it all nicely.
+  xarray = findgen(sepoch + eepoch + 1) - sepoch
+  symmax = max([p75_all_sym, p25_all_sym]) + 5
+  symmin = min([p75_all_sym, p25_all_sym]) - 5
+  kpmax =  max([p75_all_kp, p25_all_kp]) + 1
+  kpmin = 0.
+  ALmax = max([p75_all_AL, p25_all_AL]) + 20
+  ALmin = min([p75_all_AL, p25_all_AL]) - 20
+  denmax = max([p75_all_den, p25_all_den]) + 20
+  denmin = 0.
+  dengradmax = max([p75_all_grad, p25_all_grad, p75_all_grad2, p25_all_grad2]) + .20
+  dengradmin = min([p75_all_grad, p25_all_grad, p75_all_grad2, p25_all_grad2]) - .20
+  !P.multi = [0,1,5]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = strcompress('EMIC_all_b_'+string(buffer)+'_s_'+string(sepoch)+'_e_'+string(eepoch), /remove_all)
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  plot, xarray, mean_all_sym, yrange = [symmin, symmax], title = 'All EMIC wave events', ytitle = 'Sym-H nT'$
+        ,ymargin = [.1,2], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_all_sym, color = 200, thick = 4
+  oplot, xarray, p25_all_sym, color = 200, thick = 4 
+  oplot, xarray, median_all_sym, color = 50
+  plot, xarray, mean_all_AL, yrange = [ALmin, Almax], ytitle = 'AL nT'$
+        ,ymargin = [.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_all_AL, color = 200, thick = 4 
+  oplot, xarray, p25_all_AL, color = 200, thick = 4 
+  oplot, xarray, median_all_Al, color = 50
+  plot, xarray, mean_all_kp, yrange = [kpmin, kpmax], ytitle = 'Kp'$
+        ,ymargin = [.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_all_kp, color = 200, thick = 4 
+  oplot, xarray, p25_all_kp, color = 200, thick = 4 
+  oplot, xarray, median_all_kp, color = 50
+  plot, xarray, mean_all_den, yrange = [denmin, denmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_all_den, color = 200, thick = 4 
+  oplot, xarray, p25_all_den, color = 200, thick = 4 
+  oplot, xarray, median_all_den, color = 50
+  plot, xarray, mean_all_grad, yrange = [dengradmin, dengradmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_all_grad, color = 200, thick = 4 
+  oplot, xarray, p25_all_grad, color = 200, thick = 4 
+  oplot, mean_all_grad2, psym = 4
+  oplot, xarray, median_all_grad2, color = 50, psym = 4
+  oplot, xarray, p75_all_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, p25_all_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, median_all_grad2, color = 50, psym = 4
+  device, /close_file
+  close, /all
+                                ;Here we are plotting the quiet time
+                                ;EMIC wave events
+  symmax = max([p75_q_sym, p25_q_sym]) + 5
+  symmin = min([p75_q_sym, p25_q_sym]) - 5
+  kpmax =  max([p75_q_kp, p25_q_kp]) + 1
+  kpmin = 0.
+  ALmax = max([p75_q_AL, p25_q_AL]) + 20
+  ALmin = min([p75_q_AL, p25_q_AL]) - 20
+  denmax = max([p75_q_den, p25_q_den]) + 20
+  denmin = 0.
+  dengradmax = max([p75_q_grad, p25_q_grad, p75_q_grad2, p25_q_grad2]) + .20
+  dengradmin = min([p75_q_grad, p25_q_grad, p75_q_grad2, p25_q_grad2]) - .20
+
+
+  !P.multi = [0,1,5]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = 'EMIC_quiet'
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  plot, xarray, mean_q_sym, yrange = [symmin, symmax], title = 'quiet time EMIC wave events', ytitle = 'Sym-H nT'$
+        ,ymargin = [.1,2], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_q_sym, color = 200, thick = 4 
+  oplot, xarray, p25_q_sym, color = 200, thick = 4 
+  oplot, xarray, median_q_sym, color = 50
+  plot, xarray, mean_q_AL, yrange = [ALmin, Almax], ytitle = 'AL nT'$
+        ,ymargin = [.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_q_AL, color = 200, thick = 4 
+  oplot, xarray, p25_q_AL, color = 200, thick = 4 
+  oplot, xarray, median_q_Al, color = 50
+  plot, xarray, mean_q_kp, yrange = [kpmin, kpmax], ytitle = 'Kp'$
+        ,ymargin = [.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_q_kp, color = 200, thick = 4 
+  oplot, xarray, p25_q_kp, color = 200, thick = 4 
+  oplot, xarray, median_q_kp, color = 50
+  plot, xarray, mean_q_den, yrange = [denmin, denmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_q_den, color = 200, thick = 4 
+  oplot, xarray, p25_q_den, color = 200, thick = 4 
+  oplot, xarray, median_q_den, color = 50
+  plot, xarray, mean_q_grad, yrange = [dengradmin, dengradmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_q_grad, color = 200, thick = 4 
+  oplot, xarray, p25_q_grad, color = 200, thick = 4 
+  oplot, mean_q_grad2, psym = 4
+  oplot, xarray, median_q_grad2, color = 50, psym = 4
+  oplot, xarray, p75_q_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, p25_q_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, median_q_grad2, color = 50, psym = 4
+  device, /close_file
+  close, /all
+                                ;Here we are plotting the quiet time
+                                ;EMIC wave events
+  symmax = max([p75_s_sym, p25_s_sym]) + 5
+  symmin = min([p75_s_sym, p25_s_sym]) - 5
+  kpmax =  max([p75_s_kp, p25_s_kp]) + 1
+  kpmin = 0.
+  ALmax = max([p75_s_AL, p25_s_AL]) + 20
+  ALmin = min([p75_s_AL, p25_s_AL]) - 20
+  denmax = max([p75_s_den, p25_s_den]) + 20
+  denmin = 0.
+  dengradmax = max([p75_s_grad, p25_s_grad, p75_s_grad2, p25_s_grad2]) + .20
+  dengradmin = min([p75_s_grad, p25_s_grad, p75_s_grad2, p25_s_grad2]) - .20
+  !P.multi = [0,1,5]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = 'EMIC_storm'
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  plot, xarray, mean_s_sym, yrange = [symmin, symmax], title = 'Storm time EMIC wave events', ytitle = 'Sym-H nT'$
+        ,ymargin = [.1,2], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_s_sym, color = 200, thick = 4 
+  oplot, xarray, p25_s_sym, color = 200, thick = 4 
+  oplot, xarray, median_s_sym, color = 50
+  plot, xarray, mean_s_AL, yrange = [ALmin, Almax], ytitle = 'AL nT'$
+        ,ymargin = [.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_s_AL, color = 200, thick = 4 
+  oplot, xarray, p25_s_AL, color = 200, thick = 4 
+  oplot, xarray, median_s_Al, color = 50
+  plot, xarray, mean_s_kp, yrange = [kpmin, kpmax], ytitle = 'Kp'$
+        ,ymargin = [.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_s_kp, color = 200, thick = 4 
+  oplot, xarray, p25_s_kp, color = 200, thick = 4 
+  oplot, xarray, median_s_kp, color = 50
+  plot, xarray, mean_s_den, yrange = [denmin, denmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_s_den, color = 200, thick = 4 
+  oplot, xarray, p25_s_den, color = 200, thick = 4 
+  oplot, xarray, median_s_den, color = 50
+  plot, xarray, mean_s_grad, yrange = [dengradmin, dengradmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_s_grad, color = 200, thick = 4 
+  oplot, xarray, p25_s_grad, color = 200, thick = 4 
+  oplot, mean_s_grad2, psym = 4
+  oplot, xarray, median_s_grad2, color = 50, psym = 4
+  oplot, xarray, p75_s_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, p25_s_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, median_s_grad2, color = 50, psym = 4
+  device, /close_file
+  close, /all
+                                ;Here we are plotting the pre-onset
+                                ;phase emic wave events
+  symmax = max([p75_o_sym, p25_o_sym]) + 5
+  symmin = min([p75_o_sym, p25_o_sym]) - 5
+  kpmax =  max([p75_o_kp, p25_o_kp]) + 1
+  kpmin = 0.
+  ALmax = max([p75_o_AL, p25_o_AL]) + 20
+  ALmin = min([p75_o_AL, p25_o_AL]) - 20
+  denmax = max([p75_o_den, p25_o_den]) + 20
+  denmin = 0.
+  dengradmax = max([p75_o_grad, p25_o_grad, p75_o_grad2, p25_o_grad2]) + .20
+  dengradmin = min([p75_o_grad, p25_o_grad, p75_o_grad2, p25_o_grad2]) - .20
+  !P.multi = [0,1,5]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = 'EMIC_pre_onset'
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  plot, xarray, mean_o_sym, yrange = [symmin, symmax], title = 'Pre-onset phase EMIC wave events', ytitle = 'Sym-H nT'$
+        ,ymargin = [.1,2], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_o_sym, color = 200, thick = 4 
+  oplot, xarray, p25_o_sym, color = 200, thick = 4 
+  oplot, xarray, median_o_sym, color = 50
+  plot, xarray, mean_o_AL, yrange = [ALmin, Almax], ytitle = 'AL nT'$
+        ,ymargin = [.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_o_AL, color = 200, thick = 4 
+  oplot, xarray, p25_o_AL, color = 200, thick = 4 
+  oplot, xarray, median_o_Al, color = 50
+  plot, xarray, mean_o_kp, yrange = [kpmin, kpmax], ytitle = 'Kp'$
+        ,ymargin = [.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_o_kp, color = 200, thick = 4 
+  oplot, xarray, p25_o_kp, color = 200, thick = 4 
+  oplot, xarray, median_o_kp, color = 50
+  plot, xarray, mean_o_den, yrange = [denmin, denmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_o_den, color = 200, thick = 4 
+  oplot, xarray, p25_o_den, color = 200, thick = 4 
+  oplot, xarray, median_o_den, color = 50
+  plot, xarray, mean_o_grad, yrange = [dengradmin, dengradmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_o_grad, color = 200, thick = 4 
+  oplot, xarray, p25_o_grad, color = 200, thick = 4 
+  oplot, mean_o_grad2, psym = 4
+  oplot, xarray, median_o_grad2, color = 50, psym = 4
+  oplot, xarray, p75_o_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, p25_o_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, median_o_grad2, color = 50, psym = 4
+  device, /close_file
+  close, /all
+                                ;Here we are plotting the main phase events
+  symmax = max([p75_m_sym, p25_m_sym]) + 5
+  symmin = min([p75_m_sym, p25_m_sym]) - 5
+  kpmax =  max([p75_m_kp, p25_m_kp]) + 1
+  kpmin = 0.
+  ALmax = max([p75_m_AL, p25_m_AL]) + 20
+  ALmin = min([p75_m_AL, p25_m_AL]) - 20
+  denmax = max([p75_m_den, p25_m_den]) + 20
+  denmin = 0.
+  dengradmax = max([p75_m_grad, p25_m_grad, p75_m_grad2, p25_m_grad2]) + .20
+  dengradmin = min([p75_m_grad, p25_m_grad, p75_m_grad2, p25_m_grad2]) - .20
+  !P.multi = [0,1,5]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = 'EMIC_main'
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  plot, xarray, mean_m_sym, yrange = [symmin, symmax], title = 'Main phase EMIC wave events', ytitle = 'Sym-H nT'$
+        ,ymargin = [.1,2], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_m_sym, color = 200, thick = 4 
+  oplot, xarray, p25_m_sym, color = 200, thick = 4 
+  oplot, xarray, median_m_sym, color = 50
+  plot, xarray, mean_m_AL, yrange = [ALmin, Almax], ytitle = 'AL nT'$
+        ,ymargin = [.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_m_AL, color = 200, thick = 4 
+  oplot, xarray, p25_m_AL, color = 200, thick = 4 
+  oplot, xarray, median_m_Al, color = 50
+  plot, xarray, mean_m_kp, yrange = [kpmin, kpmax], ytitle = 'Kp'$
+        ,ymargin = [.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, xcharsize = 0.01, charsize = ch
+  oplot, xarray, p75_m_kp, color = 200, thick = 4 
+  oplot, xarray, p25_m_kp, color = 200, thick = 4 
+  oplot, xarray, median_m_kp, color = 50
+  plot, xarray, mean_m_den, yrange = [denmin, denmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_m_den, color = 200, thick = 4 
+  oplot, xarray, p25_m_den, color = 200, thick = 4 
+  oplot, xarray, median_m_den, color = 50
+  plot, xarray, mean_m_grad, yrange = [dengradmin, dengradmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_m_grad, color = 200, thick = 4 
+  oplot, xarray, p25_m_grad, color = 200, thick = 4 
+  oplot, mean_m_grad2, psym = 4
+  oplot, xarray, median_m_grad2, color = 50, psym = 4
+  oplot, xarray, p75_m_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, p25_m_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, median_m_grad2, color = 50, psym = 4
+  device, /close_file
+  close, /all
+                                ;Here we are plotting the recovery
+                                ;phase EMIC events
+  symmax = max([p75_r_sym, p25_r_sym, mean_r_sym, median_r_sym]) + 5
+  symmin = min([p75_r_sym, p25_r_sym, mean_r_sym, median_r_sym]) - 5
+  kpmax =  max([p75_r_kp, p25_r_kp, mean_r_kp, median_r_kp]) + 1
+  kpmin = 0.
+  ALmax = max([p75_r_AL, p25_r_AL, mean_r_AL, median_r_AL]) + 20
+  ALmin = min([p75_r_AL, p25_r_AL, mean_r_AL, median_r_AL]) - 20
+  denmax = max([p75_r_den, p25_r_den, mean_r_den, median_r_Al]) + 20
+  denmin = 0.
+  dengradmax = max([p75_r_grad, p25_r_grad, p75_r_grad2, p25_r_grad2]) + .20
+  dengradmin = min([p75_r_grad, p25_r_grad, p75_r_grad2, p25_r_grad2]) - .20
+  !P.multi = [0,1,5]
+  loadct, 6
+  set_plot, 'PS'
+  plotname = 'EMIC_recovery'
+  filename1 = strcompress(figurefolder+plotname+'.ps', /remove_all)
+  device, filename=filename1, /landscape , /color ;, $
+                                ; xsize = 7, ysize = 9, xoffset =.5, yoffset = .5, /inches  
+  plot, xarray, mean_r_sym, yrange = [symmin, symmax], title = 'Recovery phase EMIC wave events', ytitle = 'Sym-H nT'$
+        ,xcharsize = 0.01, ymargin = [0.1,2], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_r_sym, color = 200, thick = 4 
+  oplot, xarray, p25_r_sym, color = 200, thick = 4 
+  oplot, xarray, median_r_sym, color = 50
+  plot, xarray, mean_r_AL, yrange = [ALmin, Almax], ytitle = 'AL nT'$
+        ,xcharsize = 0.01, ymargin = [0.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_r_AL, color = 200, thick = 4 
+  oplot, xarray, p25_r_AL, color = 200, thick = 4 
+  oplot, xarray, median_r_Al, color = 50
+  plot, xarray, mean_r_kp, yrange = [kpmin, kpmax], ytitle = 'Kp'$
+        ,xcharsize = 0.01, ymargin = [0.1,.1], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_r_kp, color = 200, thick = 4 
+  oplot, xarray, p25_r_kp, color = 200, thick = 4 
+  oplot, xarray, median_r_kp, color = 50
+  plot, xarray, mean_r_den, yrange = [denmin, denmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_r_den, color = 200, thick = 4 
+  oplot, xarray, p25_r_den, color = 200, thick = 4 
+  oplot, xarray, median_r_den, color = 50
+  plot, xarray, mean_r_grad, yrange = [dengradmin, dengradmax], ytitle = '# density', xtitle = 'min. from EMIC wave onset'$
+        ,ymargin = [2,.15], ystyle = 1, xrange = [min(xarray), max(xarray)], xstyle = 1, charsize = ch
+  oplot, xarray, p75_r_grad, color = 200, thick = 4 
+  oplot, xarray, p25_r_grad, color = 200, thick = 4 
+  oplot, mean_r_grad2, psym = 4
+  oplot, xarray, median_r_grad2, color = 50, psym = 4
+  oplot, xarray, p75_r_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, p25_r_grad2, color = 200, thick = 4 , psym = 4
+  oplot, xarray, median_r_grad2, color = 50, psym = 4
+  device, /close_file
+  close, /all
+  
+
+;here we are just ploting the location of the events in the above
+;plots. POLAR
+
+
+         loadct, 6
+         sym = 4
+         line = 0
+        !P.multi=[0,3,2]
+        set_plot, 'PS'
+        device, filename = '../figures/events_polar_LS_LT.ps', /landscape, /color
+                                 ;Here we plot the Dst        
+        tch = 1.2
+        yout = 9.
+        xout = -12.
+        miny = -10
+        maxy = 10
+        minx = -11
+        maxx = 11
+        offset = 1.
+        syms = .25
+        noonx = -12
+        noony = 0.2
+        duskx = -4 
+        dusky = -9.8
+        ytit = ''
+        xtit = ''
+        ych = .05
+        xch = .05
+        xych = 1.
+
+        allmlt90 = oncrres90*MLT90
+        allmlt91 = oncrres91*MLT91
+        allls90 = oncrres90*LS90
+        allls91 = oncrres91*LS91
+        qmlt90 = qemic90*MLT90
+        qmlt91 = qemic91*MLT91
+        qls90 = qemic90*LS90
+        qls91 = qemic91*LS91
+        smlt90 = semic90*MLT90
+        smlt91 = semic91*MLT91
+        sls90 = semic90*LS90
+        sls91 = semic91*LS91
+        omlt90 = oemic90*MLT90
+        omlt91 = oemic91*MLT91
+        ols90 = oemic90*LS90
+        ols91 = oemic91*LS91
+        mmlt90 = memic90*MLT90
+        mmlt91 = memic91*MLT91
+        mls90 = memic90*LS90
+        mls91 = memic91*LS91
+        rmlt90 = remic90*MLT90
+        rmlt91 = remic91*MLT91
+        rls90 = remic90*LS90
+        rls91 = remic91*LS91
+
+        plot, /polar,  allls90,  allmLT90*(!pi/12.), psym = sym, yrange = [miny, maxy], xrange = [minx,maxx],$
+              xtitle = xtit, ytitle = ytit, symsize = syms, charsize = tch, pos = [0.,.5,.33,1.], $
+              title = 'CRRES EMIC Events', /isotropic, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+        oplot, /polar,  allls91, allmlt91*(!pi/12.), psym = sym, symsize = syms
+        xyouts, duskx, dusky, 'Dusk', charsize =  xych
+        xyouts, noonx, noony, 'Noon', charsize =  xych       
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360.;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize =  xych
+        xyouts, 0.15, 3.1, '3 RE', charsize =  xych
+        xyouts, 0.15, 9.1, '9 RE', charsize =  xych
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)
+
+       
+        plot, /polar, qls91, qmLT91*(!pi/12.)*offset, psym = sym, yrange = [miny, maxy], xrange = [minx, maxx],$
+              xtitle = xtit, ytitle = ytit, title = 'Non Storm Time', charsize = tch, pos = [.33,.5,.66,1.],$
+              /isotropic, symsize = syms, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+        oplot, /polar, qls90, qmlt90*(!pi/12.)*offset, psym = sym, symsize = syms
+        ;xyouts, duskx, dusky, 'Dusk', charsize = .75
+        ;xyouts, noonx, noony, 'Noon', charsize = .75        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360.;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize =  xych
+        xyouts, 0.15, 3.1, '3 RE', charsize =  xych
+        xyouts, 0.15, 9.1, '9 RE', charsize =  xych
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)*offset
+        ;xyouts, -7.7, 0.19, '6.6 RE', charsize = .5
+        ;xyouts, -4.1, 0.19, '3 RE', charsize = .5
+        ;xyouts, -10.1, 0.19, '9 RE', charsize = .5
+       
+        plot, /polar, sls91, smLT91*(!pi/12.)*offset, psym = sym, yrange = [miny, maxy], xrange = [minx, maxx],$
+              xtitle = xtit, ytitle = ytit, title = 'Storm Time', charsize = tch, pos = [.66,.5,1.,1.],$
+              /isotropic, symsize = syms, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+        oplot, /polar, sls90, smlt90*(!pi/12.)*offset, psym = sym, symsize = syms
+        ;xyouts, duskx, dusky, 'Dusk', charsize = .75
+        ;xyouts, noonx, noony, 'Noon', charsize = .75        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360.;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize =  xych
+        xyouts, 0.15, 3.1, '3 RE', charsize =  xych
+        xyouts, 0.15, 9.1, '9 RE', charsize =  xych
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)*offset
+        ;xyouts, -7.7, 0.19, '6.6 RE', charsize = .5
+        ;xyouts, -4.1, 0.19, '3 RE', charsize = .5
+        ;xyouts, -10.1, 0.19, '9 RE', charsize = .5
+
+
+
+       
+        plot, /polar, ols91, omLT91*(!pi/12.)*offset, psym = sym, yrange = [miny, maxy], xrange = [minx, maxx],$
+              xtitle = xtit, ytitle = ytit, title = 'Pre-Onset Phase', charsize = tch, pos = [0.,0.,.33,.5],$
+              /isotropic, symsize = syms, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+        oplot, /polar, ols90, omlt90*(!pi/12.)*offset, psym = sym, symsize = syms
+        ;xyouts, duskx, dusky, 'Dusk', charsize = .75
+        ;xyouts, noonx, noony, 'Noon', charsize = .75        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360.;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize =  xych
+        xyouts, 0.15, 3.1, '3 RE', charsize =  xych
+        xyouts, 0.15, 9.1, '9 RE', charsize =  xych
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)*offset
+        ;xyouts, -7.7, 0.19, '6.6 RE', charsize = .5
+        ;xyouts, -4.1, 0.19, '3 RE', charsize = .5
+        ;xyouts, -10.1, 0.19, '9 RE', charsize = .5
+
+       
+        plot, /polar, mls91, mmLT91*(!pi/12.)*offset, psym = sym, yrange = [miny, maxy], xrange = [minx, maxx],$
+              xtitle = xtit, ytitle = ytit, title = 'Main Phase', charsize = tch, pos = [.33,0.,.66,.5],$
+              /isotropic, symsize = syms, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+        oplot, /polar, mls90, mmlt90*(!pi/12.)*offset, psym = sym, symsize = syms
+        ;xyouts, duskx, dusky, 'Dusk', charsize = .75
+        ;xyouts, noonx, noony, 'Noon', charsize = .75        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360.;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize =  xych
+        xyouts, 0.15, 3.1, '3 RE', charsize =  xych
+        xyouts, 0.15, 9.1, '9 RE', charsize =  xych
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)*offset
+        ;xyouts, -7.7, 0.19, '6.6 RE', charsize = .5
+        ;xyouts, -4.1, 0.19, '3 RE', charsize = .5
+        ;xyouts, -10.1, 0.19, '9 RE', charsize = .5
+
+       
+        plot, /polar, rls91, rmLT91*(!pi/12.)*offset, psym = sym, yrange = [miny, maxy], xrange = [minx, maxx],$
+              xtitle = xtit, ytitle = ytit, title = 'Recovery Phase', charsize = tch, pos = [.66,0.,1.,.5],$
+              /isotropic, symsize = syms, xsty = 4, ysty = 4, ycharsize = ych, xcharsize = xch
+        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+        oplot, /polar, rls90, rmlt90*(!pi/12.)*offset, psym = sym, symsize = syms
+        ;xyouts, duskx, dusky, 'Dusk', charsize = .75
+        ;xyouts, noonx, noony, 'Noon', charsize = .75        
+        oplot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360.
+        oplot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360.;, color = 100
+        oplot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360.;, color = 50
+        xyouts, 0.15, 6.7, '6.6 RE', charsize =  xych
+        xyouts, 0.15, 3.1, '3 RE', charsize =  xych
+        xyouts, 0.15, 9.1, '9 RE', charsize =  xych
+        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.)*offset
+        ;xyouts, -7.7, 0.19, '6.6 RE', charsize = .5
+        ;xyouts, -4.1, 0.19, '3 RE', charsize = .5
+        ;xyouts, -10.1, 0.19, '9 RE', charsize = .5
+
+
+  device, /close_file
+  close, /all
+print, 'program done'
+end
