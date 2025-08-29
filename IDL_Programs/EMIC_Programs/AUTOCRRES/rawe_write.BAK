@@ -1,0 +1,76 @@
+Pro rawE_write,vals,state,f3
+common orbinfo,orb,orb_binfile,orb_date
+common val_header,header
+print,f3
+;stop
+;Writing to file the raw E components
+;
+;openw,unit,'Orb'+strtrim(ann,1)+'_'+strtrim(a2,1)+strtrim(a3,1)+ $
+;'_'+strtrim(a4,1)+strtrim(a5,1)+'_'+strtrim(an,1)+strtrim(a1,1)+'_Ec.val',/get_lun
+;Openw,unit,'sample5cd.val',/get_lun
+;print,'writing to file raw E components..............'
+FName=DIALOG_PICKFILE(title='Select File', FILTER = '*.*',/write,/NOCONFIRM)
+openw,u,FName,/get_lun
+printf,u,'Orbit'+string(orb)+' '+string(orb_date)
+printf,u,string(header[0])
+printf,u,'Points:'+string(n_elements(vals.(0)))
+;header[2]=string(format='(a37,1x,I0)',"Number of points in each E component:",count0)
+;For i=0,5 do $ 		                     ;Loop to read header information
+;begin
+;printf,unit,header[i]                        ;Input Header string data into string array
+;endfor
+printf,u,' '
+if f3 EQ 'E fields' then $
+ begin
+printf,u,FORMAT ='(A6,6X,A6,6X,A6,5X,A6)',$
+'TIME','Ex','Ey','Ez'
+for i=long(0),n_elements(vals.(0))-1 do $
+ begin
+    printf,u,FORMAT ='(I0,2X,F9.6,2X,F9.6,2X,F9.6)',$
+    vals.(0)[i],vals.(1)[i],vals.(2)[i],vals.(3)[i]
+endfor
+Free_lun,u
+ endif
+
+if f3 EQ 'B fields' then $
+ begin
+ index=where(fix(vals.(7)) GT 0,count)
+	if count EQ 0 then $
+	 begin
+		for i=long(0),n_elements(vals.(0))-1 do $
+ 			begin
+ 				printf,u,'Field Aligned to Bz'
+ 				printf,u,'Bx=0 & By=0'
+ 				printf,u,FORMAT ='(A6,6X,A6,6X,A6,5X,A6,6X,A6)',$
+				'TIME','dBx','dBy','dBz','Bz'
+    			printf,u,FORMAT ='(I0,2X,F9.6,2X,F9.6,2X,F9.6,2X,F9.6)',$
+    			vals.(0)[i],vals.(4)[i],vals.(5)[i],vals.(6)[i],vals.(9)[i]
+		endfor
+        Free_lun,u
+	endif else $
+	 begin
+ 		printf,u,FORMAT ='(A6,6X,A6,6X,A6,5X,A6,6X,A6,6X,A6,5X,A6)',$
+		'TIME','dBx','dBy','dBz','Bx','By','Bz'
+		for i=long(0),n_elements(vals.(0))-1 do $
+ 			begin
+    			printf,u,FORMAT ='(I0,2X,F9.6,2X,F9.6,2X,F9.6,2X,F9.6,2X,F9.6,2X,F9.6)',$
+    			vals.(0)[i],vals.(4)[i],vals.(5)[i],vals.(6)[i],vals.(7)[i],vals.(8)[i],vals.(9)[i]
+		endfor
+		Free_lun,u
+	endelse
+endif
+
+if f3 EQ 'S fields' then $
+ begin
+printf,u,FORMAT ='(A6,6X,A6,6X,A6,5X,A6)',$
+'TIME','Sx','Sy','Sz'
+for i=long(0),n_elements(vals.(0))-1 do $
+ begin
+    printf,u,FORMAT ='(I0,2X,F9.6,2X,F9.6,2X,F9.6)',$
+    vals.(0)[i],vals.(11)[i],vals.(12)[i],vals.(13)[i]
+endfor
+Free_lun,u
+ endif
+;;
+;**********************************************************************************
+end
