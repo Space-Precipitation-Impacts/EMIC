@@ -1,0 +1,157 @@
+;DATE: 05/08/02
+;TITLE: static_power.pro
+;AUTHOR: Paul Manusiu
+;DESRIPTION:
+
+
+Function Tim,mSec
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci/60)
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ Return,String(hr,mnf,secf,$
+  Format="(I2.2,':',I2.2,':',i2.2)")
+end
+
+Function XTLab,Axis,Index,Value
+ mSec=long(Value)
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ Return,String(hr,mnf,secf,$
+  Format="(I2.2,':',I2.2,':',i2.2)")
+end
+;
+Pro static_power2                            ;Start of main body
+common orbinfo,orb,orb_binfile,orb_date
+;Declared global variables:
+;	orb->orbit No.
+;	orb_binfile->ephmerius file name.
+;	orb_date->orbit date.
+;**************************************************************************
+common cm_crres,state,cm_eph,cm_val
+;Declared global varibles:
+;	state->structure holding child widgets and submenus.
+;	cm_eph->structure holding ephmerius variables
+;	cm_val->sturcture holding telemetry data
+;**************************************************************************
+common eph_ff, ffeph
+;Declared global variable:
+;	ffeph->hold ephmerius data
+;**************************************************************************
+common val_ff, ffval
+;Declared global variable:
+;	ffval->holds telemetry data
+;**************************************************************************
+;
+common val_header, header
+common init_parameter,idl_path,data_path,eph_path,res_path,eve_path,spl_int,fre_int,log_path
+ct=n_elements(cm_val.(0))
+pI=3.1415926535898
+freq = 16.0
+
+;!P.Multi = 0
+;set_plot,'ps'
+;fNAME='tests.ps'
+;FName=DIALOG_PICKFILE(title='Select File', FILTER = '*.*',/WRITE,/NOCONFIRM)
+;device,filename=FName,yoffset=3, ysize=23;,xsize=18,/portrait
+set_plot,'win'
+
+;device,filename=FName,yoffset=3, ysize=23
+!P.Multi = [0,1,2]
+
+;!P.charsize=1.3
+;!Y.style=3
+;!P.ticklen=0.04
+xdat = cm_val.(13)
+X=xdat
+;X=cm_val.(4)
+Y=cm_val.(12)
+csd_power,X,Y,freq,2500,ff1,ff2,ff12,FF,m,a        ;Cross-Phase rsponse on reverse filter
+Window,0, Xsize=500,Ysize=500
+;!P.charsize=1.0
+Plot,cm_val.(0),XDat,title='Orbit '+Orb+' '+tim(cm_val.(0)[0])+' - '+tim(cm_val.(0)[n_elements(cm_val.(0))-1])+' UT',$
+YTitle='Ex [mV/m]',XStyle=1,xticks=4,ystyle=1,XTickFormat='XTLab'
+;
+; YTitle='Ex [mV/m]',XStyle=1,xticks=4,ystyle=1,XTickFormat='XTLab'
+
+;plot,ff,alog10(ff12/ff[1]),$
+;;xtitle='Frequency (Hz)',ytitle='Log10 Magnetic Power (nT!U2!n/Hz)',xrange=[0.1,5],/xlog;,$
+plot,ff,alog10(ff1/ff[1]),$
+xtitle='Frequency (Hz)',title='Magnetic Field Power Spectrum',$
+ytitle='Log10 dBx [nT!U2!n/Hz]',xrange=[0.1,5],/xlog,yrange=[-3,1.0];,$
+;-alog10(ff1^(-0.2)/ff[1]*0.001)
+;ytitle='Log10 Ex [(mV/m)!U2!n/Hz]',xrange=[0.1,5],/xlog,yrange=[-2,1];,$
+
+;plot,ff,sqrt(double(ff1/ff[1]))*2.9,$
+;xtitle='Frequency (Hz)',ytitle='Sz       ',xrange=[0.1,5],title='Wave Poynting Vector Amplitude Spectrum',/xlog,$
+;yrange=[0,5];,$
+;/xlog;,/ylog
+;stop
+
+;plot,ff,sqrt(double(ff1/ff[1]))*1.4,$
+;xtitle='Frequency (Hz)',ytitle='Ey',xrange=[0.1,5],title='Electric Field Amplitude Spectrum',/xlog,$
+;yrange=[0,4];,$
+;/xlog;,/ylog
+;stop
+
+nslimit =fltarr(ct)
+for i=long(0),ct-long(1) do $
+nslimit[i]=0.001
+
+;oplot,ff,alog10(ff^(-1.5)/5+ff^(-.1)/5),linestyle=2
+;oplot,ff,0.7/(1+ff^(2.0)/3),linestyle=2
+;oplot,ff,alog([0.7/(1+ff^(2.0)/10)]),linestyle=2
+;oplot,ff,alog10(ff^(-0.7)/140),linestyle=2
+
+oplot,ff,sqrt(ff^(-1.0)/40),linestyle=2
+;oplot,ff,alog10(ff^(-0.7)/30),linestyle=2
+;oplot,ff,sqrt(ff^(-0.6)/10),linestyle=2
+
+;oplot,ff,alog10(nslimit),linestyle=2;+ff^(-1.0)/30)
+;Window,2, Xsize=500,Ysize=500
+
+;Plot,cm_val.(0),XDat-ff^(-1.3)/10,title='Orbit '+Orb+' '+tim(cm_val.(0)[0])+' - '+tim(cm_val.(0)[n_elements(cm_val.(0))-1])+' UT',$
+; YTitle='dBx (nT)',XStyle=1,xticks=4,ystyle=1,XTickFormat='XTLab'
+
+;xyouts,280,210,'Estimated Noise function',/device
+;xyouts,13000,10200,'- - - By MGSE',/device
+;xyouts,13000,9600,'______ Bz MGSE',/device
+;stop
+
+;Window,2, Xsize=500,Ysize=500
+
+;plot,ff,smooth(ff1/ff[1],100,/edge_truncate)/(ff^(-1.0)/30)-1,xrange=[0.1,10],title='Orbit '+Orb+' '+tim(cm_val.(0)[0])+' - '+tim(cm_val.(0)[n_elements(cm_val.(0))-1])+' UT',$
+;ytitle='Signal Noise Ratio',xtitle='Frequency (Hz)',xstyle=1,xticks=9,yrange=[0.0,100],/xlog;,ffw
+;nslimit =fltarr(ct)
+;for i=long(0),ct-long(1) do $
+;nslimit[i]=3.0
+
+;close,u
+;stop
+;X = cm_val.(8)
+;Y=X
+;csd_power,X,Y,freq,0,ff1,ff2,ff12,FF,m,a        ;Cross-Phase rsponse on reverse filter
+;oplot,ff,nslimit,linestyle=2
+
+;nslimit =fltarr(ct)
+;for i=long(0),ct-long(1) do $
+;nslimit[i]=1.0
+;oplot,ff,nslimit,linestyle=2
+;stop
+;X = cm_val.(5)
+;Y=X
+;csd_power,X,Y,freq,0,ff1,ff2,ff12,FF,m,a        ;Cross-Phase rsponse on reverse filter
+;oplot,ff,ff1,linestyle=0
+
+
+;!P.charsize=1.0
+;device,/close
+;set_plot,'win'
+;stop
+end

@@ -1,0 +1,179 @@
+Function XTLab,Axis,Index,Value
+ mSec=long(Value)
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ Return,String(hr,mnf,secf,$
+  Format="(I2.2,':',I2.2,':',i2.2)")
+end
+
+Function XTLabw,Axis,Index,Value
+ mSec=long(Value)
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ Return,String(hr,mnf,$
+  Format="(I2.2,':',I2.2)")
+end
+
+Function Tim,Value
+ mSec=long(Value)
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ Return,String(hr,mnf,secf,$
+  Format="(I2.2,':',I2.2,':',I0)")
+end
+;function Hilbs,a
+;N = n_elements(a)
+;B = FFT(a,1)
+;C = complexarr(N,/nozero)
+;C[0]=B[0]
+;C[N/2]=B[N/2]
+;for i=long(1),N/2-1 do C[i]=2.0*B[i]
+;for i=N/2+1,N-1 do C[i]=0.0
+;B=FFT(c,-1)
+;return, abs(B)
+;end
+
+function Hilbs,a
+N = n_elements(a)
+B = FFT(a,1)
+C = complexarr(N,/nozero)
+C[0]=B[0]
+C[N/2]=B[N/2]
+for i=long(1),N/2-1 do C[i]=2.0*B[i]
+for i=N/2+1,N-1 do C[i]=0.0
+B=FFT(c,-1)
+return, abs(B)
+end
+
+pro test_hilb,cm_eph,cm_val,state
+common orbinfo,orb,orb_binfile,orb_date
+common fft_results,freq,ff1,ff2,ff12,FF,m,a
+
+; Number of time samples in data set:
+
+N = long(n_elements(cm_val.(0)))
+xx=cm_val.(4)
+yy=cm_val.(5)
+;set_plot,'win'
+;!P.multi=[0,1,1]
+;w=fft(r)
+cm_trans=sqrt(xx^2.0+yy^2.0)
+;cm_trans=cm_val.(6);sqrt(xx^2.0+yy^2.0)
+
+;stop
+;hilb=fltarr(N)
+
+;hilb=Hilbs(xx);cm_trans)
+hilb=fltarr(N)
+hilb1=fltarr(N/2)
+hilb2=fltarr(N/2+1)
+cm_trans1=fltarr(N/2)
+cm_trans2=fltarr(N/2)
+cm_trans1 = cm_trans[0:N/2-1]
+cm_trans2 = cm_trans[N/2:N-1]
+hilb1=Hilbs(cm_trans1)
+hilb2=Hilbs(cm_trans2)
+hilb[0:N/2-1]=hilb1
+hilb[N/2:N-1]=hilb2
+
+;stop
+;hhilb=hilbert(hilbert(r))
+;plot,cm_val.(0),cm_trans,xstyle=1,XTickFormat='XTLab'
+;plot,cm_val.(0),smooth(hilb,500),xstyle=1,XTickFormat='XTLab',yrange=[-5.0,5.0];,psym=3
+;oplot,cm_val.(0),cm_val.(17),linestyle=1;,xstyle=1
+;*****************************************************
+cm1=cm_val.(17)[0:N/2-1]
+cm2=cm_val.(17)[N/2:N-1]
+
+xdat=hilb1;,1600)
+
+static_power8,xdat,cm1
+
+fff1=ff1
+fff2=ff2
+fff12=ff12
+FFF=FF
+mm=m
+aa=a
+;*****************************************************
+;*****************************************************
+xdat=hilb2;,1600)
+
+static_power8,xdat,cm2
+
+ffff1=ff1
+ffff2=ff2
+ffff12=ff12
+FFFF=FF
+mmm=m
+aaa=a
+;*****************************************************
+av=moment(hilb[0:1200-1])
+hilb[0:1200-1]=av[0]
+av=moment(hilb[N-1200:N-1])
+hilb[N-1200:N-1]=av[0]
+;stop
+!P.multi=0
+;window,0,xsize=700,ysize=700
+
+Plot,cm_val.(0),smooth(hilb,1200)*2.5,title='Orbit '+Orb+' '+tim(cm_val.(0)[0])+' - '+tim(cm_val.(0)[n_elements(cm_val.(0))-1])+' UT',XTitle='Time (UT)',$
+YTitle='Amplitude (nT)',XStyle=1,ystyle=1,XTickFormat='XTLab',yrange=[-8,8],xticks=3,ymargin=10.5
+oplot,cm_val.(0),cm_val.(17),linestyle=2
+xyouts,100,200,'Pc 5 dBz             _ _ _ _ _ _',/device
+xyouts,100,170,'EMIC Wave Envelope   ___________',/device
+Dat5='Hello'
+eph_inter_win,cm_eph,cm_val,state,Dat5
+;plot,fff,(fff2+ffff2)/2,linestyle=3,Xticks =3,xrange=[0.001,0.01],xstyle=1;,/ylog;yrange=[0.,1.0];,/ylog;,/ylog
+;oplot,fff,(fff1+ffff1)/2.;title='Orbit '+Orb+' '+tim(cm_val.(0)[0])+' - '+tim(cm_val.(0)[n_elements(cm_val.(0))-1])+' UT',$
+;xtitle='Frequency (Hz)',ytitle='Log Electric Power (mV/m!U2!n/Hz)',xrange=[0.01,10],$
+;yrange=[min(ff1/ff[1]),max(ff1/ff[1])],$
+;/xlog;,/ylog
+
+;plot,ff,alog(smooth(ff1/ff[1],100,/edge_truncate)),title='Orbit '+Orb+' '+tim(cm_val.(0)[0])+' - '+tim(cm_val.(0)[n_elements(cm_val.(0))-1])+' UT',$
+;xtitle='Frequency (Hz)',ytitle='Magnetic Power (Watts)',xrange=[0.01,10],$
+;yrange=[min(ff1/ff[1]),max(ff1/ff[1])],$
+;/xlog;,/ylog
+
+
+;plot,ff,smooth(ff1/ff[1],100,/edge_truncate),title='Orbit '+Orb+' '+tim(cm_val.(0)[0])+' - '+tim(cm_val.(0)[n_elements(cm_val.(0))-1])+' UT',$
+;xtitle='Frequency (Hz)',ytitle='Magnetic Power (Watts)',xrange=[0.01,10],$
+;yrange=[min(ff1/ff[1]),max(ff1/ff[1])],$
+;/xlog,/ylog
+;stop
+;set_plot,'win'
+!P.Multi = 0
+set_plot,'ps'
+fNAME='c:\paul\phd\crres\test.ps'
+;FName=DIALOG_PICKFILE(title='Select File', FILTER = '*.*',/WRITE,/NOCONFIRM)
+;set_plot,'win'
+device,filename=FName,xoffset=3,ysize=16,xsize=25,/landscape
+!P.charsize=1.0
+!Y.style=3
+!P.ticklen=0.04
+
+Plot,cm_val.(0),smooth(hilb,1200)*2.5,title='Orbit 855 '+string(tim(cm_val.(0)[0]))+' - '+string(tim(cm_val.(0)[n_elements(cm_val.(0))-1]))+' UT',$;,XTitle='Time (UT)',$
+YTitle='Amplitude (nT)',XStyle=1,ystyle=1,xticks=3,XTickFormat='XTLabw',yrange=[-5,5]
+oplot,cm_val.(0),cm_val.(17),linestyle=2
+xyouts,7000,17000,'Pc 5 dBz            _ _ _ _ _ _',/device
+xyouts,7000,16500,'EMIC Wave Envelope  ___________',/device
+;plot,fff,(fff2+ffff2)/2,linestyle=3,Xticks =3,xrange=[0.001,0.01],xstyle=1,xtitle='Frequency (Hz)',$
+;ytitle='Log Power',/ylog;,yrange=[0.,1.0];,/ylog;,/ylog
+;oplot,fff,(fff1+ffff1)/2;title='Orbit '+Orb+' '+tim(cm_val.(0)[0])+' - '+tim(cm_val.(0)[n_elements(cm_val.(0))-1])+' UT',$
+eph_inter_pc5,cm_eph,cm_val,state,Dat5
+;
+!P.charsize=1.0
+device,/close
+set_plot,'win'
+end

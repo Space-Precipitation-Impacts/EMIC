@@ -1,0 +1,502 @@
+;AUTHOR: Paul Manusiu
+;
+;PURPOSE: Program to print (PS) Dynamic power and
+;
+;
+Function XTLabv,Axis,Index,Values			;Function to format x axis into hours:minutes:seconds.frac
+ mSec=long(Values)
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ Return,String(hr,mnf,$
+  Format="(I2.2,':',I2.2)")
+end
+
+FUNCTION XTLabb,value
+ seci=Long(Value)
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ Return,String(hr,mnf,$
+  Format="(I2.2,':',I2.2)")
+end
+;
+Function YLab,Val
+
+Return,String(Val,Format="(F5.1)")
+End
+;
+; Main Program
+;
+pro spectralps_multi_ellip,cm_eph,cm_val,state,Dat5,DispArr,Fname
+;
+;Common blocks
+;
+Common BLK5,Ttle,XTtle,YTtle,YRngL,MxFr,MnT,MxT,Scl;,DispArr
+Common BLK1,NPnts,SInt,FFTN,DelF,NyqF,MxF,PntRes,NBlocs,NFr
+Common BLK2,SpW,SpTyp,Smo
+Common BLK4,MnPow,MxPow
+common orbinfo,orb,orb_binfile,orb_date
+;common Power, DispArr
+;common CPow, MxCPow, MnCPow,CPthres,CPArr
+;Picture spectifications
+;
+tempttle=ttle
+;stop
+XSz=12   ; Picture is this [cm] wide, not including axes and colour bar
+YSz=4    ; Picture height
+XOffs=2    ; cm
+;YOffs=2
+;YOffsp=IntArr(2)
+YOffs=[2,8,14,20]   ; cm   ; First Picture Y Pos
+;YOffs(1)=10  ; cm   ; Second Picture
+YOffsp=1000*YOffs
+XSzp=XSz*1000
+YSzp=YSz*1000
+XOffsp=XOffs*1000  ; in pixels
+;stop
+;
+;Print,'PostScript Print Spectra Program'
+;Print,'How Many Plots [1 or 2] :'
+;Read,NPlts
+Fname='c:\paul\phd\Test11.ps'
+OutF=Fname
+CbTtle=['Ellipticity','Azimuthal (!Uo!n)','Power (dB)','Flux (!4l!3W/m!U2!n)']
+
+;CbTtle=['Flux (!4l!3W/m!U2!n)','Ellipticity','Azimuthal (!Uo!n)','Power (dB)']
+;Print,'Enter Output File Name : [*.PS]'
+;Read,OutF
+;PTTle=' '
+;Print,'Enter Picture Title : '
+;Read,PTTle
+
+PCol=1
+Set_Plot,'PS'
+!P.Charthick=3.0  ; Set PS Character Thickness
+Device,Filename=OutF,/Portrait
+Device,XSize=18  ; cm
+Device,YSize=24  ; cm
+Device,/color  ;Set for both
+Device,XOffset=XOffs
+
+
+MnPow[3]=-2.0;MnRng[q]
+MxPow[3]=2.0;MxRng[q]
+
+MnPow[0]=-1.0;MnRng[q]
+MxPow[0]=1.0;MxRng[q]
+
+MnPow[1]=-90.0;MnRng[q]
+MxPow[1]=90.0;MxRng[q]
+
+MnPow[2]=-30.0;MnRng[q]
+MxPow[2]=5.0;MxRng[q]
+
+
+for q=0,3 do $
+ begin
+Device,YOffset=YOffs(q)
+!p.noerase=1
+NCol=!d.N_Colors
+;
+;kk=0
+;For kk=0,NPlts-1 do $
+;Begin
+ ;Print,'Colour [=1] or B/W Plot [=2]'
+ ;Read,PCol
+PCol=1
+ XRngL=cm_val.(0)[0]
+ XRngH=cm_val.(0)[n_elements(cm_val.(0))-1]
+ ;stop
+ YRngH=MxF
+ ;stop
+ Scl=1
+ RngL=mnPow[q]
+ RngH=mxPow[q]
+ ;stop
+ Nx=n_elements(DispArr(*,0,q))
+ Ny=n_elements(DispArr(0,*,q))
+; stop
+
+;*********************************************************************
+if q EQ 3 then $
+begin
+ PltTyp=0
+; If (PCol EQ 1) Then $
+; Begin
+  If (PltTyp EQ 0) Then LoadCT,17
+
+ TVLCT,r,g,b,/get
+ r(127)=255
+ g(127)=255
+ b(127)=255
+ r(128)=255
+ g(128)=255
+ b(128)=255
+ r(126)=255
+ g(126)=255
+ b(126)=255
+
+;
+ for ii=0,127 do $
+  begin
+   r(255-ii)=128+ii
+ end
+tvlct,r,g,b
+;end
+; If (PCol EQ 2) Then $
+; Begin
+;  DoinBW   ; Load Black/White Linear
+;  LC=NCol
+; End
+ Device,Bits_per_pixel=8    ; set to 8 for final
+ Bt=RngH-RngL
+ Bt1=!D.Table_Size
+ For i=0,Nx-1 do $
+ Begin
+  For j=0,Ny-1 do $
+  Begin
+   Nm=Bt1*(DispArr[i,j,q]-RngL)/Bt
+   ;stop
+   If (Nm LT 0) Then Nm=0
+   If (Nm GE Bt1) Then Nm=Bt1-1
+   DispArr(i,j,q)=Nm
+  End
+ End
+ end
+
+;*********************************************************************
+if q EQ 2 then $
+begin
+ PltTyp=0
+; If (PCol EQ 1) Then $
+; Begin
+  If (PltTyp EQ 0) Then LoadCT,20
+;end
+; If (PCol EQ 2) Then $
+; Begin
+;  DoinBW   ; Load Black/White Linear
+;  LC=NCol
+; End
+ Device,Bits_per_pixel=8    ; set to 8 for final
+ Bt=RngH-RngL
+ Bt1=!D.Table_Size
+ For i=0,Nx-1 do $
+ Begin
+  For j=0,Ny-1 do $
+  Begin
+   Nm=Bt1*(DispArr[i,j,q]-RngL)/Bt
+   ;stop
+   If (Nm LT 0) Then Nm=0
+   If (Nm GE Bt1) Then Nm=Bt1-1
+   DispArr(i,j,q)=Nm
+  End
+ End
+ end
+
+ if q LT 2 then $
+ begin
+ ;********************************************************
+ PltTyp=0
+; If (PCol EQ 1) Then $
+; Begin
+ ; If (PltTyp EQ 0) Then
+
+  LoadCT,17;,bottom=30
+
+;LoadCT,17
+
+TVLCT,r,g,b,/get
+ ;r(127)=0;255
+ ;g(127)=0;255
+ ;b(127)=0;255
+ ;r(128)=0;255
+ ;g(128)=0;255
+ ;b(128)=0;255
+ ;r(126)=0;255
+ ;g(126)=0;255
+ ;b(126)=0;255
+
+ ;for ii=0,127 do $
+ ; begin
+ ;  r(255-ii)=128+ii
+ ;end
+
+tempr1=lonarr(101)
+tempg1=lonarr(101)
+tempb1=lonarr(101)
+tempr2=lonarr(101)
+tempg2=lonarr(101)
+tempb2=lonarr(101)
+
+;FOR I=0,100 do $
+;begin
+;tempr1(i)=r(i)
+;tempb1(i)=b(i)
+;tempg1(i)=g(i)
+;end;;
+
+;FOR I=0,100 do $
+;begin
+;tempr2(i)=r(149+i)
+;tempb2(i)=b(149+i)
+;tempg2(i)=g(149+i)
+;end
+
+;FOR I=0,100 do $
+;begin
+;r(i)=tempr2(i)
+;b(i)=tempb2(i)
+;g(i)=tempg2(i)
+;end
+
+
+;FOR I=0,100 do $
+;begin
+;r(149+i)=tempr1(i)
+;b(149+i)=tempb1(i)
+;g(149+i)=tempg1(i)
+;end
+
+
+
+
+FOR I=1,106 do $
+begin
+r(149+i)=i*2.
+b(149+i)=50;1*i;255;+i
+g(149+i)=149+i;*fix(i/3)
+end
+
+FOR I=1,100 do $
+begin
+r(100-i)=150+i
+b(100-i)=i*2.
+g(100-i)=0;i*1.
+end
+
+FOR I=1,51 do $
+begin
+r(99+i)=0;g(255)
+b(99+i)=255;g(255)
+g(99+i)=0
+end
+
+FOR I=1,2 do $
+begin
+r(253+i)=255
+b(253+i)=255
+g(253+i)=255
+end
+
+ tvlct,r,g,b
+
+;end
+ ; If (PCol EQ 2) Then $
+ ;Begin
+ ; DoinBW   ; Load Black/White Linear
+ ; LC=NCol
+ ;End
+ Device,Bits_per_pixel=8    ; set to 8 for final
+ Bt=RngH-RngL
+ ;Bt1=!D.Table_Size
+ Bt1=253;!D.Table_Size
+
+ For i=0,Nx-1 do $
+ Begin
+  For j=0,Ny-1 do $
+  Begin
+   Nm=Bt1*(DispArr[i,j,q]-RngL)/Bt
+   ;stop
+   If (Nm GE Bt1) Then Nm=255;Bt1
+   If (Nm LT 0) Then Nm=255
+   DispArr(i,j,q)=Nm
+  End
+ End
+ ;index=where(disparr[*,*,q] GT 50,count)
+ ;disparr[index]=255
+end
+;print,max(disparr[*,*,q])
+;stop;
+ ; Print picture
+ Tv,Congrid(DispArr[*,*,q],500,300,/Interp,/Minus_one),$
+ XOffs,YOffs(q),XSize=XSz,YSize=YSz,/CENTIMETERS
+ ;Wait,0.5
+ ;
+ ; Do Colour Bar
+ ;
+ ;CScl=IntArr(1,!d.n_colors)
+ ;For i=0,!d.n_colors-1 do $
+ ; CScl(0,i)=i
+ ;XOffscl=XOffs+XSz+0.5 ; Set bar X position
+ ;XSzb=1         ; Colour bar width in cm
+ ;YSzb=YSz       ; Colour bar height in cm
+ ;Tv,Congrid(CScl,10,300,/Interp),$
+ ; XOffscl,YOffs(q),XSize=XSzb,YSize=YSzb,/CENTIMETERS
+ ;Xsclp=Xoffscl*1000
+ ;YSzbp=YSzb*1000
+ if q LT 2 then $
+ncolors=253 else $
+ncolors=256
+
+CScl=IntArr(1,ncolors)
+ For i=0,ncolors-1 do $
+  CScl(0,i)=i
+ XOffscl=XOffs+XSz+0.5 ; Set bar X position
+ XSzb=1         ; Colour bar width in cm
+ YSzb=YSz       ; Colour bar height in cm
+ Tv,Congrid(CScl,10,300,/Interp),$
+  XOffscl,YOffs(q),XSize=XSzb,YSize=YSzb,/CENTIMETERS
+ Xsclp=Xoffscl*1000
+ YSzbp=YSzb*1000
+
+ ;
+ ; Change Colour for AXES etc.
+ ;
+ LoadCT,0
+ LC=0
+ ; Draw LH vertical line on colour bar
+ Plots,[XSclp,Xsclp],[YOffsp(q),YOffsp(q)+YSzbp],/Device,Color=LC
+ ; Draw RH vertical line on colour bar
+ XRHp=XSclp+XSzb*1000
+ Plots,[XRHp,XRHp],[YOffsp(q),YOffsp(q)+YSzbp],/Device,Color=LC
+ ; Draw line along bottom of colour bar
+ Plots,[XSclp,XRHp],[YOffsp(q),YOffsp(q)],/Device,Color=LC
+;Rng=long(0)
+ Rng=RngH-RngL
+ ;stop
+ PPRng=YSzbp/Rng
+;stop
+ RngD=Rng/10.0
+Tme=XRngL
+;stop
+ Inc=10.0
+ ;Print,'Current Increment [for 10 Divs] is ',RngD
+ ;Print,'Enter Required Increment : '
+ ;Read,Inc
+Inc=RngD
+ PInc=Fix(PPRng*Inc)
+ X11=XRHp
+ X12=XRHp+100
+ X22=XRHp+150
+ NYTics=Fix(YSzbp/PInc)
+ CBy=YOffsp(q)
+ For ii=0,NYTics do $
+ Begin
+  Lab=RngL+ii*Inc
+  If (Lab LE RngH) Then $
+  Begin
+   If (ABS(Lab) LE 1.0) Then $
+    SMn=String(Lab,Format="(F6.1)") Else $
+    SMn=String(Lab,Format="(F6.0)")
+    if q EQ 3 then $
+    begin
+  ; If (ABS(Lab) LE 1.0) Then $
+  ;  SMn=String(Lab,Format="(F6.2)") Else $
+    SMn=String(Lab,Format="(F6.1)")
+   end
+   If (PltTyp EQ 1) Then SMn=String(Lab,Format="(F6.0)")
+   Plots,[X11,X12],[CBy,CBy],/Device,Color=LC
+   XYOuts,X22,CBy-100,SMn,Orientation=0,/Device,Color=LC
+   CBy=Cby+PInc
+  end
+ End
+
+
+; Colour bar Title
+ XCl=X22+1500
+ CbLng=StrLen(CbTtle[q])*200
+if q EQ 3 then $
+ YPos=YOffsp(q)+Fix(YSzbp/2)-Fix(CbLng/2)-50 +700 else $
+ YPos=YOffsp(q)+Fix(YSzbp/2)-Fix(CbLng/2)-50 +100
+
+ XYOuts,XRHp+1800,YPos,CbTtle[q],Orientation=90,/Device,Color=LC
+ ;
+;Print,'Printing Axes...'
+;Plots,XOffsp,YOffsp,/Device,Color=LC
+;  X axis  ( TIME )
+; Plots,[XOffsp,XOffsp+XSzp],[YOffsp,YOffsp],/Device,Color=LC
+;Plots,XOffsp,YOffsp,/Device,Color=LC
+;!P.Charthick=3.0  ; Set PS Character Thickness
+Plot,cm_val.(0),findgen(n_elements(cm_val.(0))-1),$
+xtickformat='XTLabv',xticks=3,xstyle=1,$
+pos=[XOffsp,YOffsp(q),XOffsp+XSzp,YOffsp(q)+YSzbp],$
+/nodata,/noerase,ystyle=4,/device,xcharsize=2;,Color=LC
+;stop
+He_cycl_freqps ,state,cm_eph,cm_val,Dat5,XOffsp,YOffsp(q),XSzp,YSzbp,MxF
+!P.charsize=1.0
+;
+;XYouts,XPos+700,YOffsp(kk)-1700,'(b)',/Device,Color=LC
+;
+TTle='CRRES '+string(tempTTLe[q])
+FFT_TRes_text='Length: '+string(Npnts,format="(I0)")+$
+'  FFT: '+string(FFTN,format="(I0)")+$
+'  Time: '+string(PntRes,format="(I0)")
+LnTtle=StrLen(TTle)*200
+XPos=XOffsp+Fix(XSzp/2)-Fix(LnTtle/2)
+if q EQ 3 then $
+begin
+XYOuts,XPos,YOffsp(q)+5000,TTle,/Device,Color=LC
+XYOuts,XPos,YOffsp(q)+4500,FFT_Tres_text,/Device,Color=LC
+end else $
+XYOuts,XPos,YOffsp(q)+4500,TTle,/Device,Color=LC
+Plots,XOffsp,YOffsp(q),/Device,Color=LC
+;
+; Y Axis
+;
+ Plots,[XOffsp,XOffsp],[YOffsp(q),YOffsp(q)+Yszp],/Device,Color=LC
+Plots,[XOffsp+Xszp,XOffsp+Xszp],[YOffsp(q),YOffsp(q)+Yszp],/Device,Color=LC
+ Plots,XOffsp,YOffsp(q),/Device,Color=LC
+
+  If (Scl EQ 1) Then $     ; Linear Frequency Axis
+  Begin
+    FreInc=(YRngH-YRngL);*100.0    ; i.e. *1000/10
+;stop
+   PixperRe=FreInc*100.0*YSz/(YRngH-YRngL)
+    Ntmm=Fix([YSzp/PixperRe])+1
+   Ntm=Ntmm(0)
+    Fre=YRngL;*1000.0
+;    print,Ntm
+;stop
+    For i=1,Ntm do $
+    Begin
+     j=YOffsp(q)+(i-1)*Fix(PixperRe)
+     Plots,[XOffsp,XOffsp-200],[j,j],/Device,Color=LC  ;Tic marks
+     FrLab=YLab(Fre)
+     XYOuts,XOffsp-1300,(j-100),FrLab,Orientation=0,/Device,Color=LC
+     Fre=Fre+(FreInc/10.)
+;stop
+    End
+
+  End
+XYOuts,XOffsp-1500,YOffsp(q)+YSzp/2-1200,YTtle,$
+Orientation=90,/Device,Color=LC
+print,XOffsp
+print,YOffsp(q)
+endfor
+
+;!P.charsize=1.5
+;xyouts,2200,20700,'f!dO+!n',/device
+;xyouts,2200,22400,'f!dHe+!n',/device
+;!P.charsize=1.0
+;xyouts,2100,21000,'f!dO+!n',/device
+;xyouts,2100,22900,'f!dHe+!n',/device
+!P.charsize=1.0
+;xyouts,2500,23500,'            1a 1b  1c 1d          ',/device
+;xyouts,2500,22000,'             1e 1f 1g 1h          2    3',/device
+
+;xyouts,3300,14600,'1a1b 2a2b2c  3  4 5a5b5c 6a6b6c 7  8      9 10',/device
+;!P.charsize=1.0
+
+eph_inter_spectral2,cm_eph,cm_val,state,Dat5,XOffsp,YOffsp(2)
+device,/close
+;stop
+set_plot,'win'
+!P.MULTI = 0
+!p.noerase=0
+;print,'hello !! ',tempttle
+;stop
+end
