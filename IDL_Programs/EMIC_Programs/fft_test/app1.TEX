@@ -1,0 +1,396 @@
+\chapter{Appendix}       % Enter chapter title between curly braces
+\section{CRRES Data Processing}       % Enter section title between 
+\subsection{CRRES\_WIDGET.PRO}       % Enter section title between 
+\\
+\noindent {\bf Ephmerius Data Files}\\
+
+
+\\
+\\
+\noindent {\bf General:}
+
+
+The ephermius files are made up of two files. The first is crfiles.shr. This file is ascii text and has no header or index section. It consists entirely of 75 characters records per line. The crfiles.shr file is search for the satellite ephermius data file name that corresponds to the chosen orbit. The ephermius data file name is of the form cnnnnnnn.0ep which is 12 charcters long and nnnnnnn is a seven digit number. Chars 1-5 correspond to the start date/Time in crfiles.shr file. Chars 6-7 is hour value of Start date/Time in crfiles.shr file. Minutes and seconds are ignored in *.0ep filename.\\
+\newpage
+
+\begin{table}
+%\begin{center}
+\caption{Ephermius Input Files}
+\begin{tabular}{lccc}  
+\hline
+ &\\
+&FILE	&CHARACTERS	&DESCRIPTION \\ 
+ &\\ 
+\hline
+&crfiles.shr \\
+
+& &0-4	&Orbit Number\\
+
+ & &6-24	&Date/Time when data for the orbit begins\\
+
+&&26-44	&Date/Time when data for the orbit ends\\
+
+&&46-57	&File Name\\
+
+&&59-70	&Identification of the optical disk (redundant for this program)\\
+
+&&72-74	&Obsolete code\\
+&\\
+
+\hline
+&\\
+&Ephermius (c*.0ep) \\
+&\\
+&&0 		&lower case c\\
+
+&&1-2		&last two digits of year (e.g. 90 for 1990)\\
+
+&&3-5		&day number with January 1 as day 1 \\
+
+&&6-7		&Hour of the day\\
+&\\
+\hline
+&\\
+\end{tabular}  
+%\end{center}
+%\normalsize
+\end{table}
+\\
+
+
+\\
+\noindent {\bf Ephermius Data Section Format:}
+\begin{enumerate}
+\item Data is in ASCII binary format.
+\item Consists of multiple data groups in chronological order. Each group is 240 bytes long and consists of 60 4-byte integers.
+\item No header index for file.
+\item No negative integers in ephemerius file.
+\item Binary values stored in Big-endian sequence.
+\item Each data group consists of 59 ephemerius parameters with last three parameters vacant.
+\end{enumerate}
+\\
+
+\begin{table}
+\footnotesize
+\tiny
+\begin{center}
+\caption{\footnotesize CRRES spacecraft ephmerius parameters and correction factors for *.0ep files.}
+\begin{tabular}{lccccccc}  
+\hline
+ &\\
+ & Parameter		& Units		& Correction Factor(log 10)\\ 
+ &\\ 
+\hline
+ & Julian Date 		&day			&1\\   
+ & UT 			&msec 		&1\\ 
+ & X S/C, ECI 		&km		    	&-4\\
+ & Y S/C, ECI 		&km			&-4\\
+ & Z S/C, ECI 		&km			&-4\\
+ &X' S/C, ECI 		&km/s	      	&-7\\
+ &Y' S/C, ECI 		&km/s	  	      &-7\\
+ &Z' S/C, ECI 		&km/s 		&-7\\   
+ &R, EARTH-S/C  		&km			&-4\\ 
+ &Altitude  		&km			&-4\\ 
+ &Lat. 	   		&deg  		&-6\\
+ &Long. 	   		&deg  		&-6\\
+ &Velocity 			&km/s 		&-7\\
+ &Local time 		&hr			&-7\\
+ &R, MAG 			&emr  		&-7\\
+ &Lat., MAG	   		&deg  		&-6\\
+ &Long., MAG   		&deg  		&-6\\
+ &R, SM 			&emr  		&-7\\
+ &Lat., SM	   		&deg  		&-6\\
+ &Local time., SM		&hr			&-7\\
+ &R, GSM 			&emr  		&-7\\
+ &Lat., GSM	   		&deg  		&-6\\
+ &Local time., GSM	&hr			&-7\\
+ &B 				&nT			&-4\\ 
+ &BX, ECI			&nT			&-4\\ 
+ &BY, ECI			&nT			&-4\\ 
+ &BZ, ECI			&nT			&-4\\
+ &Local time., MAG	&hr			&-7\\
+ &Solar Zenith  		&deg			&-6\\
+ &Invariant Lat. 		&deg			&-6\\
+ &B100N Lat.		&deg			&-6\\
+ &B100N Long.		&deg			&-6\\
+ &B100S Lat.		&deg			&-6\\
+ &B100S Long.		&deg			&-6\\
+ &L-Shell 			&emr			&-7\\
+ &Bmin 			&nT			&-4\\
+ &Bmin Lat.			&deg			&-6\\
+ &Bmin Long.		&deg			&-6\\
+ &Bmin ALT			&km			&-4\\
+ &Bconj Lat.		&deg			&-6\\
+ &Bconj Long.		&deg			&-6\\
+ &Bconj ALT			&km			&-4\\
+ &Xsun ECI 			&km			&1\\
+ &Ysun ECI 			&km			&1\\
+ &Zsun ECI 			&km			&1\\
+ &Xmoon ECI			&km			&1\\
+ &Ymoon ECI			&km			&1\\
+ &Zmoon ECI			&km			&1\\
+ &RA Greenwich		&don't know		&-6\\
+ &B100N Mag Field 	&nT			&-4\\
+ &B100S Mag Field 	&nT			&-4\\
+ &Mx Dipole 		&nT			&-4\\
+ &My Dipole 		&nT			&-4\\
+ &Mz Dipole 		&nT			&-4\\
+ &Dx Dipole Off. 		&km			&-4\\
+ &Dy Dipole Off. 		&km			&-4\\
+ &Dz Dipole Off. 		&km			&-4\\
+ &Vacant                &FFFFFFFF		&1\\           	
+ &Vacant                &FFFFFFFF		&1\\     
+ &Vacant                &FFFFFFFF		&1\\
+ &\\
+    
+ \hline
+\end{tabular}  
+%\label{closed_k}
+\end{center}
+\normalsize
+\end{table}
+\newpage
+\noindent {\bf Telemetry Data Files}\\
+
+
+\noindent {\bf General:}
+
+
+	The file is post fiche formatted. The binary telemetry file is not used here since we are
+	only interested in E and B fields. The binary telemetry file is inputted into fiche and the
+	resultant output is the input telemetry file for this program.
+\\
+\\
+\noindent {\bf File Name:}
+\begin{enumerate}
+\item Orb*.val format
+
+\item	* consists of upto five string groups:
+
+\item   Orbit number (e.g. 75 or 200)
+
+\item	May also give highpass filter value from fiche preprocessing.
+
+\item	May also give lowpass filter value from fiche preprocessing.
+
+\item  May also give file start time (hhmm format)
+
+\item  May also give file end time (hhmm format)
+
+\item   May also give date of file creation as fiche preprocessing date (ddmmyy eg 161100 which is day 16 of November 2000).
+
+\end{enumerate}
+
+
+\noindent Example of full name: Orb75\_2000\_2010\_Low1.0Hz\_High3.0Hz\_161100.val\\
+
+\\
+\noindent Note: Only the first five and/or six characters will never change order and file name may not include all string groups. However the program only requiresthe first five and/or six characters run.\\
+
+\\
+\noindent {\bf Data Section Format:}
+
+\\
+\noindent {\bf General:}\\
+
+\\
+\noindent File is in ASCII text and consists of a header and 8 data quantities in total. The E fields are usually 32Hz sample rate and the B fields always 16Hz.The E fields may sometimes be 16Hz and this is a legacy of the fiche preprocessing and cannot be controlled.\\
+
+\\
+\newpage
+\begin{table}
+\begin{center}
+\caption{The 8 data quantities are}
+\begin{tabular}{lccccccc}  
+\hline
+&\\
+&2 E-fields(mV/m)		 	&6 B-fields(nT)\\
+&\\
+\hline
+&\\
+&(0 E-field12 is Ey in MGSE)		&(2   BX is dBx in MGSE)\\
+
+&(1 E-field34 is Ez in MGSE)		&(3   BY is dBy in MGSE)\\
+
+					&&(4   BZ is dBz in MGSE)\\							
+
+					&&(5   BX is Bx+dBx in MGSE)\\
+
+					&&(6   BY is By+dBy in MGSE)\\
+
+					&&(7   BZ is Bz+dBz in MGSE)\\
+&\\
+\hline
+&\\
+\end{tabular}  
+\end{center}
+%\normalsize
+\end{table}
+
+\begin{table}
+\begin{center}
+\caption{Example Telemetry Header}
+CRRES Orbit 75, Day 237 (Aug 25) 1990, 23:41:00.000 to 23:52:39.999\\
+\begin{tabular}{lcccc}
+&File:  c9023715.0tm\\
+&NumberQuantities  8\\
+&INDEX  &NAME                      &UNITS         &NUMBER\_COMPONENTS\\
+&0   &E-Field12                 &mV/m          &1\\
+&1   &E-Field34                 &mV/m          &1\\
+&2   &BX- MGSE\n(scaled  offs  &nTelsa        &1\\
+&3   &BY- MGSE\n(scaled  offs  &nTelsa        &1\\
+&4   &BZ- MGSE\n(scaled  offs  &nTelsa        &1\\
+&5   &BX- MGSE\n(scaled  offs  &nTelsa        &1\\
+&6   &BY- MGSE\n(scaled  offs  &nTelsa        &1\\
+&7   &BZ- MGSE\n(scaled  offs  &nTelsa        &1\\
+\end{tabular}  
+\end{center}
+%\normalsize
+\end{table}
+
+\begin{table}
+\begin{center}
+\caption{Example Telemetry Data Section}
+\begin{tabular}{lccc}
+&TIME   &INDEX    &COMPONENTS\\
+&85275003  &7   &4.345876E+02\\
+&:	   &:		&:\\
+&:	   &:		&:\\
+\end{tabular}  
+\end{center}
+%\normalsize
+\end{table}\\
+
+\\
+\noindent Note: The first character of each line corresponds to the position along each line of the first character on the TIME tag long integer. In the above example this would be position of 8 in 85275003. Each line of data consists of three values and every new line usually indexes sequencually up or down but not always.\\
+
+\\
+\noindent Values:\\
+TIME: Long integer\\
+INDEX: Integer which corresponds to the index on header section.\\
+COMPONENTS: Double and/or Float is actual value of for the indexed component.\\
+
+\\
+\noindent WARNING ABOUT POST FICHE FILES:\\
+		  Fiche usually appends to the telemetry ascii text files a few
+		  empty lines at the end of the file. The last line in the file
+		  must correspond to last data section line. So delete empty lines
+		  at bottom of all *.val files before inputting to program. The
+		  *.val files should not allow the cursor to move pass the last
+		  character in the data section. The "backspace" key will usually
+		  do this for you in any GUI text editor than don't forget to save
+		  file afterwards.\\
+
+
+\\
+\noindent DEPENDENTS/SUBROUTINES:\\
+
+\\
+			PARENT WIDGET MENU:\\
+					File$\rightarrow$ New:\\
+					Desensitizes Widget Menu options "Ephmerius","Data" & "Series"
+					However does not destroy data or ephmerius structures.\\
+\\
+
+					File$\rightarrow$ Open:\\
+					eph\_crfiles$\rightarrow$ opens crfiles.shr, returns orbit No. and orbit date.\\
+					val\_crfiles$\rightarrow$ opens crfiles.shr, returns ephmerius filename and orbit date.\\
+					fileph$\rightarrow$ opens ephmerius file, extracts ephmerius parameter values for orbit.\\
+							Looks in current directory and if not found\\
+							prompts for option to search in d:\ (cdrom) drive.\\
+					fileval2$\rightarrow$ opens data file, extracts telemetry data for E and B fields.\\
+
+\\
+					File$\rightarrow$Save:\\
+					eph\_data\_write$\rightarrow$ Write current ephemerius data to file\\
+					eph\_plot\_ps$\rightarrow$ Plots to postscript current ephemerius plot in graphics window.\\
+					val\_plot\_ps$\rightarrow$ Plots to postscript current data plot in graphics window.\\
+
+
+
+\subsection{Dynamic Spectral Modular Tests}
+\subsubsection{Spectral Alorgithm}
+
+IMPORTANT TEST SUBROUTINES: 
+
+Loadct.pro - Color table
+
+DYNTV_crres_test.pro - Plots dynamic array using IDL TV.pro to screen device.
+
+spectralps_test.pro - Plots  dynamic array using IDL TV.pro to postscript device.
+
+Hanning.pro - Hanning window for time domain smoothing (Not used in dynamic power analysis). 
+
+FFT.pro - IDL routine to determine Fast Fourier Transformation components.
+
+Note: FFT.pro input includes direction of FFT computation. If +1 than its an inverse FFT which means that multiplication factor of 1/N$^2$ must be included in routine. Here N is FFTN or FFT length.
+  
+Dtrend.pro - Linear dtrend routine used to help minimize leakage.
+
+\subsubsection{dpown_test.} 
+
+PURPOSE: Test power spectra subroutines  
+
+(1) Generates a test 16Hz sampled sinusiodal time series
+
+(2) Calculates dynamic spectral power in frequency domain
+
+(3) Plots spectral power
+
+
+IMPORTANT TEST VARIABLES:
+
+NyqF: Nyquist Frequency (16Hz)
+
+Npnts: Times Series Length ranging from 100 - 10000 points
+
+FFTN: FFT Lengths ranging from 100 - 1000 points
+ 
+TRes: Time Resolution ranging from 10 - 200 points
+
+fac: Fourier Tranform results in halving of signal amplitude. This variable is a multiplication factor to restore original power levels. 
+
+fac=(DXMAX^2.0)/max(Disparr)
+
+DXMAX: Time series maximum. 
+
+Disparr: Power Spectral array.
+
+Wnd: FFT Side-lope/Leakage affects is minimized through use of exponential smoothing window function. Wnd a frequency domain exponential window with ism set at 2.
+
+Wnd(i)=Exp(-(Float(i-ism)/Float(ism/2.))$^2$)
+
+\subsubsection{dpcrosspower_test.pro}
+
+PURPOSE: Test power spectra subroutines  
+
+(1) Generates a test 16Hz sampled sinusiodal time series
+
+(2) Calculates dynamic spectral crosspower in frequency domain
+
+(3) Plots spectral crosspower
+
+IMPORTANT TEST VARIABLES:
+
+Similiar to dpown_test.pro variables.
+
+DXMAX: Maximum amplitude of cross product of time series.    
+
+fac: (DXMAX)/max(Disparr)
+
+Disparr: CrossPower Spectral array.
+
+
+\section{Important Website}
+
+http://crres.bu.edu
+
+http://sunfreeware.davnet.com
+
+
+% Enter subsection title between curly braces
+
+
+
+
+
