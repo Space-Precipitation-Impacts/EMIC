@@ -1,0 +1,72 @@
+pro den_test
+
+
+  dataf = '../Data/'
+  lowmlt = 12
+  highmlt = 24
+  lowls = 0
+  highls = 8
+  nummlt = 240.
+  numls = 80.
+  restore, dataf+'CRRES_1min_1990.save'
+  restore, dataf+'CRRES_1min_1991.save'
+  restore, strcompress(dataf+'CRRES_EMIC_2010.save')
+                                ;Here we are creating the arrays for
+                                ;the MLT, LS, and Den. for the EMIC
+                                ;wave events. These arrays contain
+                                ;that information for the entire
+                                ;event. 
+  emicmlt90 = mlt90*syearmin90;*oncrres90
+  emicmlt91 = mlt91*syearmin91;*oncrres91
+  emicmlat90 = mlat90*syearmin90  ;*oncrres90
+  emicmlat91 = mlat91*syearmin91;*oncrres91
+  emicls90 = ls90*syearmin90;oncrres90
+  emicls91 = ls91*syearmin91;oncrres91
+  emicden90 = den90*syearmin90;oncrres90
+  emicden91 = den91*syearmin91;oncrres91  
+  noindex90 = where(syearmin90 ne 1)
+  noindex91 = where(syearmin91 ne 1)
+  noemicyear90 = make_array(n_elements(syearmin90), value = !values.F_NAN)
+  noemicyear91 = make_array(n_elements(syearmin91), value = !values.F_NAN)
+  noemicyear90(noindex90) = 1.
+  noemicyear91(noindex91) = 1.
+  nomlt90 = mlt90*noemicyear90
+  nomlt91 = mlt91*noemicyear91
+  nomlat90 = mlat90*noemicyear90
+  nomlat91 = mlat91*noemicyear91
+  nols90 = ls90*noemicyear90
+  nols91 = ls91*noemicyear91
+  noden90 = den90*noemicyear90
+  noden91 = den91*noemicyear91
+
+stop
+plotindex = where(finite(x_eci90))
+!P.multi = [0,1,0]
+        set_plot, 'PS'
+        device, filename = '../Desktop/dentest.ps', /landscape, /color
+
+
+
+
+;        plots, x_ECI90(plotindex[0:100]), y_ECI90(plotindex[0:100]), z_ECI90(plotindex[0:100]);,$; yrange = [miny, maxy], xrange = [minx,maxx],$
+;                     title = 'plotting 3-D density test';, /isotropic, xsty = 4, ysty = 4
+;        Axis, 0, 0, xax = 0., ycharsize = ych, xcharsize = xch
+;        Axis , 0, 0, yax = 0., ycharsize = ych, xcharsize = xch
+;        xyouts, duskx, dusky, 'Dusk', charsize =  2
+;        xyouts, noonx, noony, 'Noon', charsize =  2
+;        plot, /polar, make_array(360, value = 1), findgen(360)*2.*!pi/360., make_array(360, value = 0)
+;        plot, /polar, make_array(360, value = 3), findgen(360)*2.*!pi/360., make_array(360, value = 0)
+;        plot, /polar, make_array(360, value = 6.6), findgen(360)*2.*!pi/360., make_array(360, value = 0);, color = 100
+;        plot, /polar, make_array(360, value = 9), findgen(360)*2.*!pi/360., make_array(360, value = 0);, color = 50
+;        xyouts, 0.15, 6.7, '6.6 Re', charsize = 2
+;        xyouts, 0.15, 3.1, '3 Re', charsize = 2
+;        xyouts, 0.15, 9.1, '9 Re', charsize = 2
+;        for h = 1, 100 do oplot, /polar, make_array(360, value = 1)*(h/100.), findgen(180)*2.*!pi/360.+(3.*!pi/2.), make_array(360, value = 0)
+
+
+        device, /close_file
+        close, /all
+
+
+
+end
