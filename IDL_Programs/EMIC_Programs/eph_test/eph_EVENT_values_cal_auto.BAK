@@ -1,0 +1,82 @@
+;AUTHOR: Paul Manusiu
+;
+Function EPH_TLab, Value ;Function to format x axis into hours:minutes:seconds.frac
+ mSec=long(Value)
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ Return,String(hr,mnf,secf,$
+  Format="(I2.2,':',I2.2,':',I2.2)")
+
+end
+
+pro eph_EVENT_VALUES_cal_auto,noi
+common init_struct,state2
+common init_parameter,idl_path,data_path,eph_path,res_path,eve_path,spl_int,fre_int,log_path
+common orbinfo,orb,orb_binfile,orb_date
+common eph_ff, ffeph
+common val_ff, ffval
+common val_header, header
+common datafiles, data_files,no_data,para_struct
+common datastruct, dat_struct,eph_idl_path,eph_data_path,event_fname,data_fil,no_dat
+common results,data_results
+common ev,ev_orb
+;common datafiles, data_files,no_data,para_struct
+common eph_data_struct, eph_names, eph_data_array,data_len
+common eph_name_tim_day,nname,julian_day,u_time_formated,u_time_milsec
+
+;
+;***********************************************************************************
+;
+cd,idl_path[0]
+event_fname = 'events_orbit_time8.val'
+text = ' '
+openr,u,event_fname,/get_lun
+readf,u,text
+print,text
+no_dat = n_elements(para_struct.orbit)
+ev_orb = 0l
+ev_avtime = ' '
+while (not eof(u)) do $
+ begin
+ readf,u,ev_orb,ev_avtime
+
+ ev_avtime= strtrim(ev_avtime,1)
+ ev_hr = strmid(ev_avtime,0,2)
+ ev_hr = fix(ev_hr)
+ ev_hr = strtrim(string(ev_hr),1)
+ev_hr = strtrim(string(ev_hr),1)
+ if strlen(ev_hr) EQ 1 then $
+  begin
+  ev_mn = strmid(ev_avtime,2,2)
+  ev_sec = strmid(ev_avtime,4,2)
+ end
+
+ if strlen(ev_hr) EQ 2 then $
+  begin
+  ev_mn = strmid(ev_avtime,3,2)
+  ev_sec = strmid(ev_avtime,6,2)
+ end
+ ;stop
+if fix(ev_orb) EQ fix(para_struct[noi].Orbit) then $
+if fix(string(ev_hr)+ev_mn) GE fix(para_struct[noi].start_time) and fix(string(ev_hr)+ev_mn) LE fix(para_struct[noi].end_time) then $
+begin
+;print,para_struct[noi].filename
+;print,ev_orb,' ',ev_hr+ev_mn
+;stop
+filnme = para_struct[noi].filename
+evtim = fix(strtrim(ev_hr+ev_mn,1))
+stop
+eph_calculate_auto,filename,evtim,ev_hr,ev_mn,noi
+stop
+
+end
+endwhile
+;end
+cd,idl_path[0]
+free_lun,u
+;stop
+end
