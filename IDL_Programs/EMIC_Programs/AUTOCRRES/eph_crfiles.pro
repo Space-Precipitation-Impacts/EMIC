@@ -1,0 +1,16 @@
+pro eph_crfiles,orbit,eph_bin,date
+  texts=strarr(1)
+  openr,/get_lun,uu,'eph/crfiles.shr'
+
+  while (not eof(uu)) do $
+   begin
+    readf,uu,texts
+    if  strmid(texts(0),46,8) EQ eph_bin then $
+      begin
+       orbit=strtrim(strmid(texts(0),1,4),1)
+       date=strmid(texts(0),6,10)
+    endif
+  endwhile
+  free_lun,uu
+  print,'Extracting Ephmerius file Infromation for Orbit: ',orbit
+  end

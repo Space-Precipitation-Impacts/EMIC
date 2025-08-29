@@ -1,0 +1,151 @@
+;AUTHOR: Paul Manusiu
+;
+pro eph_inter_spectral,cm_eph,cm_val,state,Dat5,XOffsp,YOffsp
+;common namm_spectral,nn,ttt								;Begin main
+common namm,nn,ttt
+common eph_inter_axis,val_inter_eph
+;********************************************************************************
+eph={MLT:fltarr(n_elements(cm_eph.(2))),$
+     MLAT:fltarr(n_elements(cm_val.(2))),$
+     Lshell:fltarr(n_elements(cm_val.(2)))}
+eph.lshell=cm_eph.(34)
+eph.mlat=cm_eph.(15)
+eph.mlt=cm_eph.(27)
+UT=fltarr(n_elements(cm_eph.(2)))
+for i=0, n_elements(UT) -1 do $
+UT[i]=cm_eph.(1)[i]
+ttt=cm_val.(0)
+;********************************************************************************
+;**********************************************************************************
+;Beginning of Ephermius interpolation routines
+;Data in *val files >> data in *0ep files
+;
+;**********************************************************************************
+;**********************************************************************************
+;Search through *0ep and count i for which (val.time[0] <= eph.time <= val.time[max])
+;
+i=long(0)
+for kk=0, n_elements(UT)-1 do $
+  if (UT[kk] GE ttt[0]) AND (UT[kk] LE ttt[n_elements(ttt)-1]) then $
+     begin
+      i=i+1
+  endif
+;stop
+;
+;**************************************************************************************
+;Condition 1: Only one eph.time element within val.time[0]
+;             && val.time[n_elements(val.time)-1]
+;
+if i EQ 1 then $
+ begin
+ val_inter_eph=fltarr(3,n_elements(ttt))
+   for kk=0, n_elements(UT)-1 do $
+    if (UT[kk] GE ttt[0]) AND (UT[kk] LE ttt[n_elements(ttt)-1]) then $
+     begin
+      lj=kk
+   endif
+
+   ;Condition 1a: ttt(0) < UT[lj] < ttt(n-1)
+   if ttt[0] LT UT[lj] and UT[lj] LT ttt[n_elements(ttt)-1] then $
+    begin
+    for j=long(0),2 do $
+    	begin
+     val_eph_time=[UT[lj-1],ttt[0],UT[lj],ttt[n_elements(ttt)-1],UT[lj+1]]
+     ephlshell=[eph.(j)[lj-1 ],eph.(j)[lj],eph.(j)[lj+1]]
+     ephtime=[UT[lj-1],UT[lj],UT[lj+1]]
+     eph_inter_lshell=interpol(ephlshell,ephtime,val_eph_time)
+     fin_eph_inter_lshell=[eph_inter_lshell[1],eph_inter_lshell[3]]
+     valtime=[ttt[0],ttt[n_elements(ttt)-1]]
+     val_inter_eph[j,*]=interpol(fin_eph_inter_lshell,valtime,ttt)
+endfor
+   endif
+;stop
+;Condition 1b: ttt(0) EQ UT[lj]
+   if ttt[0] EQ UT[lj] then $
+    begin
+     for j=long(0),2 do $
+    	begin
+     val_eph_time=[UT[lj],ttt[n_elements(ttt)-1],UT[lj+1]]
+     ephlshell=[eph.(j)[lj-1 ],eph.(j)[lj],eph.(j)[lj+1]]
+     ephtime=[UT[lj],UT[lj+1]]
+     eph_inter_lshell=interpol(ephlshell,ephtime,val_eph_time)
+     fin_eph_inter_lshell=[eph_inter_lshell[0],eph_inter_lshell[1]]
+     valtime=[ttt[0],ttt[n_elements(ttt)-1]]
+     val_inter_eph[j,*]=interpol(fin_eph_inter_lshell,valtime,ttt)
+     endfor
+   endif
+
+endif
+;print,val_inter_eph[0.0:10]
+;
+;**********************************************************************************
+;Condition 2: More than one eph.time element within val.time[0]
+;             && val.time[n_elements(val.time)-1]
+if i GT 1 then $
+ begin
+   ii=long(0)
+   lj=lonarr(i)
+   ephtime=fltarr(i)
+;**********************************************************************************
+   val_inter_eph=fltarr(3,n_elements(ttt))
+   val_eph_time=lonarr(i+2)
+   val_eph_time[0]=ttt(0)
+   val_eph_time[i+2-1]=ttt(n_elements(ttt)-1)
+;**********************************************************************************
+;Condition 2a:    val.time(0)=<all eph.time<=val.time(n)
+   for kk=0, n_elements(UT)-1 do $
+     if (UT[kk] GE ttt[0]) AND (UT[kk] LE ttt[n_elements(ttt)-1]) then $
+      begin
+       lj[ii]=kk
+       ephtime[ii]=UT[kk]
+       ii=ii+1
+   endif
+   ;stop
+   for jj=1,i do $
+   		val_eph_time[jj]=ephtime[jj-1]
+   		ephlshell=fltarr(i)
+	for j=0,2 do $
+		begin
+			for w=0,i-1 do $
+   		ephlshell[w]=eph.(j)[lj(w)]
+   	;	stop
+   		eph_inter_lshell=interpol(ephlshell,ephtime,val_eph_time)
+   	;	stop
+		val_inter_eph[j,*]=interpol(eph_inter_lshell,val_eph_time,ttt)
+	endfor
+endif
+;
+;
+;**********************************************************************************
+if (Dat5 EQ 'ALL FIELDS') OR (DAT5 EQ 'ALL DB FIELDS') OR (DAT5 EQ 'ALL B FIELDS') $
+OR (DAT5 EQ 'ALL E FIELDS') OR (dAT5 eq 'Z FIELDS') then $;
+	begin
+	xyouts,[-750,-750,-750,-750],[180,-600,-1300,-2000],['UT','MLT','L','MLAT'],/device
+	xyouts,0,-600,String(val_inter_eph[0,0],val_inter_eph[0,nn[1]],$
+	val_inter_eph[0,nn[2]],val_inter_eph[0,n_elements(val_inter_eph[0,*])-1],$
+	Format="(2X,F6.2,23X,F6.2,23X,F6.2,23X,F6.2)"),/device
+	xyouts,0,-1300,String(val_inter_eph[2,0],val_inter_eph[2,nn[1]],$
+	val_inter_eph[2,nn[2]],val_inter_eph[2,n_elements(val_inter_eph[2,*])-1],$
+	Format="(2X,F6.2,23X,F6.2,23X,F6.2,23X,F6.2)"),/device
+	xyouts,0,-2000,String(val_inter_eph[1,0],val_inter_eph[1,nn[1]],$
+	val_inter_eph[1,nn[2]],val_inter_eph[1,n_elements(val_inter_eph[1,*])-1],$
+	Format="(2X,F6.2,23X,F6.2,23X,F6.2,23X,F6.2)"),/device
+endif else begin
+!P.charsize=1.03
+!P.ticklen=0.02
+	xyouts,[300,300,300,300],[900,70,-600,-1300],['UT','MLT','L','MLAT'],/device
+	xyouts,0,70,String(val_inter_eph[0,0],val_inter_eph[0,nn[1]],$
+	val_inter_eph[0,nn[2]],val_inter_eph[0,n_elements(val_inter_eph[0,*])-1],$
+	Format="(7X,F6.2,20X,F6.2,20X,F6.2,19X,F6.2)"),/device
+	xyouts,0,-600,String(val_inter_eph[2,0],val_inter_eph[2,nn[1]],$
+	val_inter_eph[2,nn[2]],val_inter_eph[2,n_elements(val_inter_eph[2,*])-1],$
+	Format="(7X,F6.2,20X,F6.2,20X,F6.2,19X,F6.2)"),/device
+	xyouts,0,-1300,String(val_inter_eph[1,0],val_inter_eph[1,nn[1]],$
+	val_inter_eph[1,nn[2]],val_inter_eph[1,n_elements(val_inter_eph[1,*])-1],$
+	Format="(7X,F6.2,20X,F6.2,20X,F6.2,19X,F6.2)"),/device
+!P.charsize=1.0
+endelse
+device,/close
+set_plot,'win'
+!P.MULTI = 0
+end
