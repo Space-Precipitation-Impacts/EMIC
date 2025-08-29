@@ -1,0 +1,67 @@
+Pro lowapc_event,ev
+common orbinfo,orb,orb_binfile,orb_date
+common cm_crres,state,cm_eph,cm_val
+common lowchoice ,filtords,fieldch,filttype,cut
+widget_control, ev.top,get_uvalue=lowgroup,/hourglass
+widget_control,lowgroup.cuttoff,get_value=cut
+;widget_control,lowgroup.field_choice,get_uvalue=fch
+widget_control,lowgroup.filt_ord,get_value=filtords
+widget_control,lowgroup.field_choice,get_value=fieldch
+ widget_control,lowgroup.low_filt,get_value=filter
+widget_control,lowgroup.filt_type,get_value=filttype
+print,filttype
+print,filter
+print,fieldch
+print,filtords
+print,float(cut)
+;widget_control,ev.id,set_value=cut
+;stop
+widget_control,ev.id,get_uvalue=vval
+if vval EQ 'filter' then $
+   begin
+   print,filttype
+print,filter
+print,fieldch
+print,filtords
+print,float(cut)
+  widget_control,ev.id,set_value='Filtering...'
+  ;filtervals,lowgroup
+  pc5test,lowgroup
+
+  endif
+;widget_control,ev.id,set_value=cut
+end
+
+Pro lowapc,Pros5
+common cm_crres,state,cm_eph,cm_val
+common lowchoice ,filtords,fieldch,cut
+SSInt=ABS(cm_val.(0)[1] - cm_val.(0)[0])
+stop
+SSSInt=SSINt/1000.0
+;stop
+cut=float(6.0)
+SFreq=1./SSSINt
+NyF=SFreq/2.
+base=widget_base(/column,title='BandPass Filter')
+cuttoff=cw_field(base,title='Low-Highpass CuttOff (Hz)',$
+uvalue='cut',/column,/return_event,/string)
+texts=widget_text(base,value='Nyquist Freq:'+string(NyF,format='(F0)')+'Hz')
+field=['Bmain','dB Fields','E fields','S fields']
+orders=['1','2']
+type=['Highpass','Lowpass']
+filt_ord  = CW_BGroup(base,orders,UValue='filtords',ids='ordds',$
+      Label_top='ButterWorth Filter Order',Set_Value=1,/row,/Exclusive)
+filt_type  = CW_BGroup(base,type,UValue='filttype',ids='type',$
+      Label_top='ButterWorth Filter Type',Set_Value=1,/row,/Exclusive)
+field_choice  = CW_BGroup(base,field,UValue='fieldch',ids='fieldids',$
+      Label_top='Fields to Filter',Set_Value=1,/row,/nonExclusive)
+
+low_filt=widget_button(base,value='Filter',uvalue='filter')
+lowgroup={base:base,cuttoff:cuttoff,field:field,$
+			field_choice:field_choice,low_filt:low_filt,$
+			texts:texts,filt_ord:filt_ord,filt_type:filt_type}
+
+widget_control,base,/realize
+widget_control,base,set_uvalue=lowgroup
+Xmanager,'lowapc', base,/no_block
+end

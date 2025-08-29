@@ -1,0 +1,614 @@
+
+pro lowpass, lowgroup
+common cm_crres,state,cm_eph,cm_val
+common orbinfo,orb,orb_binfile,orb_date
+common lowchoice ,filtords,fieldch,filttype,cut
+print,filtords,fieldch,cut
+;************************************************************************************
+;The data is run through a Butterworth filter
+;Filter is implemented using Bi-Linear Transformation.
+;
+SSInt=ABS(cm_val.(0)[1] - cm_val.(0)[0])
+SSSInt=SSINt/1000.0
+freq=1./SSSInt
+count0=n_elements(cm_val.(0))
+pI=3.1415926535898						;Declare Pi to 12 demical places.
+sam1=float(cut)
+sam1=sam1[0]                              ;lowpass dB to remove phase due to spacecraft
+Order = filtords+1
+FiltType = filttype+1
+Cuts = float(sam1/freq)
+Print,'Low pass filtering data now'
+dumm =fltarr(count0)
+Theta=fltArr(6)
+;stop
+;
+Ex=cm_val.(1)
+Ey=cm_val.(2)
+Ez=cm_val.(3)
+dBx=cm_val.(4)
+dBy=cm_val.(5)
+dBz=cm_val.(6)
+Bx=cm_val.(7)
+By=cm_val.(8)
+Bz=cm_val.(9)
+Sx=cm_val.(11)
+Sy=cm_val.(12)
+Sz=cm_val.(13)
+BxPc5 = cm_val.(15)
+ByPc5 = cm_val.(16)
+BzPc5 = cm_val.(17)
+
+Bxx=Bx
+Byy=By
+Bzz=Bz
+if fieldch[0] EQ 1 and fieldch[1] EQ 1 and fieldch[2] EQ 0 and fieldch[3] EQ 0 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE ='Lowpass filtering B & dB fields with cutstoff'+string(cuts)+'Hz'
+ dtrend2,Bx,count0,Rax,Rbx
+ Bxxx=Bx[count0-1]
+ dtrend2,By,count0,Ray,Rby
+ Byyy=By[count0-1]
+ dtrend2,Bz,count0,Raz,Rbz
+ Bzzz=Bz[count0-1]
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]-[Bxxx/float(count0)]*float(i)-[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]-[Byyy/float(count0)]*float(i)-[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]-[Bzzz/float(count0)]*float(i)-[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ FiltCtrl,dBx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBz,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,By,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bz,dumm,wc,Order,FiltType,cuts,count0,theta
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+[Bxxx/float(count0)]*float(i)+[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]+[Byyy/float(count0)]*float(i)+[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]+[Bzzz/float(count0)]*float(i)+[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+Rax+Rbx*Float(i)
+   By[i]=Bz[i]+Ray+Rby*Float(i)
+   Bz[i]=Bz[i]+Raz+Rbz*Float(i)
+ endfor
+endif
+;*************************************************************************************
+if fieldch[0] EQ 1 and fieldch[1] EQ 1 and fieldch[2] EQ 0 and fieldch[3] EQ 1 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE ='Lowpass filtering B & dB fields with cutstoff'+string(cuts)+'Hz'
+ dtrend2,Bx,count0,Rax,Rbx
+ Bxxx=Bx[count0-1]
+ dtrend2,By,count0,Ray,Rby
+ Byyy=By[count0-1]
+ dtrend2,Bz,count0,Raz,Rbz
+ Bzzz=Bz[count0-1]
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]-[Bxxx/float(count0)]*float(i)-[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]-[Byyy/float(count0)]*float(i)-[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]-[Bzzz/float(count0)]*float(i)-[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ FiltCtrl,Sx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sz,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBz,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,By,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bz,dumm,wc,Order,FiltType,cuts,count0,theta
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+[Bxxx/float(count0)]*float(i)+[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]+[Byyy/float(count0)]*float(i)+[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]+[Bzzz/float(count0)]*float(i)+[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+Rax+Rbx*Float(i)
+   By[i]=By[i]+Ray+Rby*Float(i)
+   Bz[i]=Bz[i]+Raz+Rbz*Float(i)
+ endfor
+endif
+
+;*********************************************************************************
+
+;*********************************************************************************
+
+if fieldch[0] EQ 1 and fieldch[1] EQ 1 and fieldch[2] EQ 1 and fieldch[3] EQ 0 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering all fields with cutstoff'$
++string(cuts)+'Hz'
+ dtrend2,Bx,count0,Rax,Rbx
+ Bxxx=Bx[count0-1]
+ dtrend2,By,count0,Ray,Rby
+ Byyy=By[count0-1]
+ dtrend2,Bz,count0,Raz,Rbz
+ Bzzz=Bz[count0-1]
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]-[Bxxx/float(count0)]*float(i)-[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]-[Byyy/float(count0)]*float(i)-[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]-[Bzzz/float(count0)]*float(i)-[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ for i=long(0),100 do $
+  if Ex[i] NE 0.0 then $
+ FiltCtrl,Ex,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Ey,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Ez,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBz,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,By,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bz,dumm,wc,Order,FiltType,cuts,count0,theta
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+[Bxxx/float(count0)]*float(i)+[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]+[Byyy/float(count0)]*float(i)+[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]+[Bzzz/float(count0)]*float(i)+[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+Rax+Rbx*Float(i)
+   By[i]=Bz[i]+Ray+Rby*Float(i)
+   Bz[i]=Bz[i]+Raz+Rbz*Float(i)
+ endfor
+endif
+;*************************************************************************************
+
+;*********************************************************************************
+
+if fieldch[0] EQ 1 and fieldch[1] EQ 1 and fieldch[2] EQ 1 and fieldch[3] EQ 1 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering all fields with cutstoff'$
++string(cuts)+'Hz'
+ dtrend2,Bx,count0,Rax,Rbx
+ Bxxx=Bx[count0-1]
+ dtrend2,By,count0,Ray,Rby
+ Byyy=By[count0-1]
+ dtrend2,Bz,count0,Raz,Rbz
+ Bzzz=Bz[count0-1]
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]-[Bxxx/float(count0)]*float(i)-[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]-[Byyy/float(count0)]*float(i)-[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]-[Bzzz/float(count0)]*float(i)-[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+
+ FiltCtrl,Sx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sz,dumm,wc,Order,FiltType,cuts,count0,theta
+
+ for i=long(0),100 do $
+  if Ex[i] NE 0.0 then $
+ FiltCtrl,Ex,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Ey,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Ez,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,dBz,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,By,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bz,dumm,wc,Order,FiltType,cuts,count0,theta
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+[Bxxx/float(count0)]*float(i)+[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]+[Byyy/float(count0)]*float(i)+[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]+[Bzzz/float(count0)]*float(i)+[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+Rax+Rbx*Float(i)
+   By[i]=Bz[i]+Ray+Rby*Float(i)
+   Bz[i]=Bz[i]+Raz+Rbz*Float(i)
+ endfor
+endif
+;*************************************************************************************
+
+;*********************************************************************************
+
+if fieldch[0] EQ 1 and fieldch[1] EQ 0 and fieldch[2] EQ 0 and fieldch[3] EQ 0 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering B fields with cutstoff'$
++string(cuts)+'Hz'
+
+;resz=smooth(Bz,501,/EDGE_TRUNCATE)
+;Bz=resz
+;resz=smooth(Bx,501,/EDGE_TRUNCATE)
+;Bx=resz
+;resz=smooth(By,501,/EDGE_TRUNCATE)
+;By=resz
+;stop
+;BZOLD=BZ
+dtrend2,Bz,count0,Raz,Rbz
+ Bzzz=Bz[count0-1]
+;BZNEW=BZ
+;;stop
+BXOLD=BX
+ dtrend2,Bx,count0,Rax,Rbx
+; BXNEW=BX
+ ;STOP
+ Bxxx=Bx[count0-1]
+ dtrend2,By,count0,Ray,Rby
+;STOP
+ Byyy=By[count0-1]
+; dtrend2,Bz,count0,Raz,Rbz
+; Bzzz=Bz[count0-1]
+;stop
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]-[Bxxx/float(count0)]*float(i)-[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]-[Byyy/float(count0)]*float(i)-[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]-[Bzzz/float(count0)]*float(i)-[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+;STOP
+ FiltCtrl,Bx,dumm,wc,Order,FiltType,cuts,count0,theta
+ dumm =fltarr(count0)
+ Theta=fltArr(6)
+ FiltCtrl,By,dumm,wc,Order,FiltType,cuts,count0,theta
+dumm =fltarr(count0)
+Theta=fltArr(6)
+ FiltCtrl,Bz,dumm,wc,Order,FiltType,cuts,count0,theta
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+[Bxxx/float(count0)]*float(i)+[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]+[Byyy/float(count0)]*float(i)+[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]+[Bzzz/float(count0)]*float(i)+[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+;STOP
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+Rax+Rbx*Float(i)
+   By[i]=By[i]+Ray+Rby*Float(i)
+   Bz[i]=Bz[i]+Raz+Rbz*Float(i)
+ endfor
+
+;endif
+;STOP
+
+WIDGET_CONTROL, state.text,SET_VALUE = 'LowPass filtering complete'
+endif
+;*************************************************************************************
+
+;*********************************************************************************
+
+if fieldch[0] EQ 1 and fieldch[1] EQ 0 and fieldch[2] EQ 0 and fieldch[3] EQ 1 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering B fields with cutstoff'$
++string(cuts)+'Hz'
+ dtrend2,Bx,count0,Rax,Rbx
+ Bxxx=Bx[count0-1]
+ dtrend2,By,count0,Ray,Rby
+ Byyy=By[count0-1]
+ dtrend2,Bz,count0,Raz,Rbz
+ Bzzz=Bz[count0-1]
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]-[Bxxx/float(count0)]*float(i)-[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]-[Byyy/float(count0)]*float(i)-[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]-[Bzzz/float(count0)]*float(i)-[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ FiltCtrl,Sx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sz,dumm,wc,Order,FiltType,cuts,count0,theta
+
+ FiltCtrl,Bx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,By,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bz,dumm,wc,Order,FiltType,cuts,count0,theta
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+[Bxxx/float(count0)]*float(i)+[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]+[Byyy/float(count0)]*float(i)+[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]+[Bzzz/float(count0)]*float(i)+[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+Rax+Rbx*Float(i)
+   By[i]=Bz[i]+Ray+Rby*Float(i)
+   Bz[i]=Bz[i]+Raz+Rbz*Float(i)
+ endfor
+endif
+;*************************************************************************************
+
+;*********************************************************************************
+
+if fieldch[0] EQ 0 and fieldch[1] EQ 1 and fieldch[2] EQ 0 and fieldch[3] EQ 0 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering dB fields with cutstoff'$
++string(cuts)+'Hz'
+
+FiltCtrl,dBx,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBy,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBz,dumm,wc,Order,FiltType,cuts,count0,theta
+endif
+;*************************************************************************************
+
+;*********************************************************************************
+
+if fieldch[0] EQ 0 and fieldch[1] EQ 1 and fieldch[2] EQ 0 and fieldch[3] EQ 1 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering dB fields with cutstoff'$
++string(cuts)+'Hz'
+ FiltCtrl,Sx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sz,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBx,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBy,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBz,dumm,wc,Order,FiltType,cuts,count0,theta
+endif
+;*************************************************************************************
+if fieldch[0] EQ 0 and fieldch[1] EQ 0 and fieldch[2] EQ 1 and fieldch[3] EQ 0 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering E fields with cutstoff'$
++string(cuts)+'Hz'
+
+;for i=long(0),100 do $
+; if Ex[i] NE 0.0 then $
+FiltCtrl,Ex,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,Ey,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,Ez,dumm,wc,Order,FiltType,cuts,count0,theta
+endif
+;**************************************************************************************
+;*************************************************************************************
+if fieldch[0] EQ 0 and fieldch[1] EQ 0 and fieldch[2] EQ 1 and fieldch[3] EQ 1 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering E fields with cutstoff'$
++string(cuts)+'Hz'
+
+for i=long(0),100 do $
+ if Ex[i] NE 0.0 then $
+FiltCtrl,Ex,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,Ey,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,Ez,dumm,wc,Order,FiltType,cuts,count0,theta
+
+ FiltCtrl,Sx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sz,dumm,wc,Order,FiltType,cuts,count0,theta
+
+endif
+;**************************************************************************************
+;*********************************************************************************
+
+if fieldch[0] EQ 0 and fieldch[1] EQ 1 and fieldch[2] EQ 1 and fieldch[3] EQ 0 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering dB & E fields with cutstoff'$
++string(cuts)+'Hz'
+
+;for i=long(0),100 do $
+; if Ex[i] NE 0.0 then $
+FiltCtrl,Ex,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBx,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBy,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBz,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,Ey,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,Ez,dumm,wc,Order,FiltType,cuts,count0,theta
+
+
+endif
+;*********************************************************************************
+
+if fieldch[0] EQ 0 and fieldch[1] EQ 1 and fieldch[2] EQ 1 and fieldch[3] EQ 1 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering dB & E fields with cutstoff'$
++string(cuts)+'Hz'
+
+for i=long(0),100 do $
+ if Ex[i] NE 0.0 then $
+FiltCtrl,Ex,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBx,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBy,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,dBz,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,Ey,dumm,wc,Order,FiltType,cuts,count0,theta
+FiltCtrl,Ez,dumm,wc,Order,FiltType,cuts,count0,theta
+
+ FiltCtrl,Sx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sz,dumm,wc,Order,FiltType,cuts,count0,theta
+endif
+
+;*********************************************************************************
+
+;*********************************************************************************
+
+if fieldch[0] EQ 1 and fieldch[1] EQ 0 and fieldch[2] EQ 1 and fieldch[3] EQ 0 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering all fields with cutstoff'$
++string(cuts)+'Hz'
+ dtrend2,Bx,count0,Rax,Rbx
+ Bxxx=Bx[count0-1]
+ dtrend2,By,count0,Ray,Rby
+ Byyy=By[count0-1]
+ dtrend2,Bz,count0,Raz,Rbz
+ Bzzz=Bz[count0-1]
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]-[Bxxx/float(count0)]*float(i)-[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]-[Byyy/float(count0)]*float(i)-[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]-[Bzzz/float(count0)]*float(i)-[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ for i=long(0),100 do $
+  if Ex[i] NE 0.0 then $
+ FiltCtrl,Ex,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Ey,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Ez,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,By,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bz,dumm,wc,Order,FiltType,cuts,count0,theta
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+[Bxxx/float(count0)]*float(i)+[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]+[Byyy/float(count0)]*float(i)+[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]+[Bzzz/float(count0)]*float(i)+[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+Rax+Rbx*Float(i)
+   By[i]=Bz[i]+Ray+Rby*Float(i)
+   Bz[i]=Bz[i]+Raz+Rbz*Float(i)
+ endfor
+endif
+;*************************************************************************************
+;*********************************************************************************
+
+if fieldch[0] EQ 1 and fieldch[1] EQ 0 and fieldch[2] EQ 1 and fieldch[3] EQ 1 then $
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering all fields with cutstoff'$
++string(cuts)+'Hz'
+ dtrend2,Bx,count0,Rax,Rbx
+ Bxxx=Bx[count0-1]
+ dtrend2,By,count0,Ray,Rby
+ Byyy=By[count0-1]
+ dtrend2,Bz,count0,Raz,Rbz
+ Bzzz=Bz[count0-1]
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]-[Bxxx/float(count0)]*float(i)-[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]-[Byyy/float(count0)]*float(i)-[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]-[Bzzz/float(count0)]*float(i)-[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ for i=long(0),100 do $
+  if Ex[i] NE 0.0 then $
+ FiltCtrl,Ex,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Ey,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Ez,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,By,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Bz,dumm,wc,Order,FiltType,cuts,count0,theta
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+[Bxxx/float(count0)]*float(i)+[Bx[0]/float(count0)]*float(count0-i)
+   By[i]=By[i]+[Byyy/float(count0)]*float(i)+[By[0]/float(count0)]*float(count0-i)
+   Bz[i]=Bz[i]+[Bzzz/float(count0)]*float(i)+[Bz[0]/float(count0)]*float(count0-i)
+ endfor
+ for i=long(0),count0-1 do $
+  begin
+   Bx[i]=Bx[i]+Rax+Rbx*Float(i)
+   By[i]=Bz[i]+Ray+Rby*Float(i)
+   Bz[i]=Bz[i]+Raz+Rbz*Float(i)
+ endfor
+
+ FiltCtrl,Sx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sz,dumm,wc,Order,FiltType,cuts,count0,theta
+endif
+;*************************************************************************************
+if fieldch[0] EQ 0 and fieldch[1] EQ 0 and fieldch[2] EQ 0 and fieldch[3] EQ 1 then $
+ begin
+;for i=long(0),100 do $
+;  if Sx[i] EQ 0.0 then $
+;  WIDGET_CONTROL, state.dat_info,SET_VALUE = 'S fields are zero thus no filtering for them!'$
+;  else $
+ ; begin
+ FiltCtrl,Sx,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sy,dumm,wc,Order,FiltType,cuts,count0,theta
+ FiltCtrl,Sz,dumm,wc,Order,FiltType,cuts,count0,theta
+ ;  endelse
+
+endif
+;**************************************************************************************
+if fieldch[0] EQ 0 and fieldch[1] EQ 0 and fieldch[2] EQ 0 and fieldch[3] EQ 0 and fieldch[4] EQ 1 then $;
+	begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering Pc5 dB fields with cutstoff'$
++string(cuts)+'Hz'
+
+;resz=smooth(Bzpc5,501,/EDGE_TRUNCATE)
+;BzPc5=resz
+;resz=smooth(Bxpc5,501,/EDGE_TRUNCATE)
+;Bxpc5=resz
+;resz=smooth(Bypc5,501,/EDGE_TRUNCATE)
+;Bypc5=resz
+
+;stop
+dtrend2,Bzpc5,count0,Raz,Rbz
+ Bzzz=Bzpc5[count0-1]
+BXOLD=BX
+ dtrend2,Bxpc5,count0,Rax,Rbx
+ Bxxx=Bxpc5[count0-1]
+ dtrend2,Bypc5,count0,Ray,Rby
+;stop
+ Byyy=Bypc5[count0-1]
+ for i=long(0),count0-1 do $
+  begin
+   Bxpc5[i]=Bxpc5[i]-[Bxxx/float(count0)]*float(i)-[Bxpc5[0]/float(count0)]*float(count0-i)
+   Bypc5[i]=Bypc5[i]-[Byyy/float(count0)]*float(i)-[Bypc5[0]/float(count0)]*float(count0-i)
+   Bzpc5[i]=Bzpc5[i]-[Bzzz/float(count0)]*float(i)-[Bzpc5[0]/float(count0)]*float(count0-i)
+ endfor
+;STOP
+ FiltCtrl,Bxpc5,dumm,wc,Order,FiltType,cuts,count0,theta
+ dumm =fltarr(count0)
+ Theta=fltArr(6)
+ FiltCtrl,Bypc5,dumm,wc,Order,FiltType,cuts,count0,theta
+dumm =fltarr(count0)
+Theta=fltArr(6)
+ FiltCtrl,Bzpc5,dumm,wc,Order,FiltType,cuts,count0,theta
+ for i=long(0),count0-1 do $
+  begin
+   Bxpc5[i]=Bxpc5[i]+[Bxxx/float(count0)]*float(i)+[Bxpc5[0]/float(count0)]*float(count0-i)
+   Bypc5[i]=Bypc5[i]+[Byyy/float(count0)]*float(i)+[Bypc5[0]/float(count0)]*float(count0-i)
+   Bzpc5[i]=Bzpc5[i]+[Bzzz/float(count0)]*float(i)+[Bzpc5[0]/float(count0)]*float(count0-i)
+ endfor
+;STOP
+ for i=long(0),count0-1 do $
+  begin
+   Bxpc5[i]=Bxpc5[i]+Rax+Rbx*Float(i)
+   Bypc5[i]=Bypc5[i]+Ray+Rby*Float(i)
+   Bzpc5[i]=Bzpc5[i]+Raz+Rbz*Float(i)
+ endfor
+;stop
+endif
+;TOP
+
+;IDGET_CONTROL, state.text,SET_VALUE = 'LowPass filtering complete'
+;ndif
+;***********************************************************************************************
+;WIDGET_CONTROL, state.dat_info,SET_VALUE = 'Lowpass filtering done'
+;
+;Bxtemp=fltarr(n_elements(Bx)-201)
+;Bytemp=fltarr(n_elements(Bx)-201)
+;Bztemp=fltarr(n_elements(Bx)-201)
+;Bx=Bx[fix(n_elements(Bx)*0.20):n_elements(Bx)-1]
+
+;By=By[fix(n_elements(By)*0.20):n_elements(Bx)-1]
+;print,n_elements(By)
+;Bz=Bz[fix(n_elements(Bz)*0.20):n_elements(Bx)-1]
+;Bx=congrid(Bx,n_elements(dBx))
+;By=congrid(By,n_elements(dBx))
+;Bz=congrid(Bz,n_elements(dBx))
+;stop
+;**************************************************************************************
+;Pass values to data structure
+cm_val.(1)=Ex
+cm_val.(2)=Ey
+cm_val.(3)=Ez
+cm_val.(4)=dBx
+cm_val.(5)=dBy
+cm_val.(6)=dBz
+cm_val.(7)=Bx
+cm_val.(8)=By
+cm_val.(9)=Bz
+cm_val.(11)=Sx
+cm_val.(12)=Sy
+cm_val.(13)=Sz
+cm_val.(15)=BxPc5
+cm_val.(16)=ByPc5
+cm_val.(17)=BzPc5
+
+;**************************************************************************************
+;return memory to heap
+Ex=0.
+Ey=0.
+Ez=0.
+dBx=0.
+dBy=0.
+dBz=0.
+Bx=0.
+By=0.
+Bz=0.
+;********************************************************************************
+;*********************************************************************************
+end
