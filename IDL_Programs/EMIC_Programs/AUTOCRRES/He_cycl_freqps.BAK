@@ -1,0 +1,12 @@
+Pro He_cycl_freqps ,state,cm_eph,cm_val,Dat5,XOffsp,YOffsp,XSzp,YSzbp,MxF
+const=0.0240729021
+PI=3.14159265359
+;LoadCT,13
+
+;window,10,xsize=500,ysize=500
+plot,cm_val.(0),[const*cm_val.(9)]/(2*pi),xstyle=5,ystyle=5,$
+color=0,thick=2.0,/noerase,$;,xtickformat="XTlab",xstyle=1
+pos=[XOffsp,YOffsp,XOffsp+XSzp,YOffsp+YSzbp],yrange=[0,MxF],$
+/device
+print,MxF
+end

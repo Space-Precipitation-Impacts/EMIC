@@ -1,0 +1,319 @@
+;Modifications: by Paul Manusiu 20/06/2001
+;				Changed SPLINE to pure cubic to handle E B field when sample rate is the same and
+;				number of E elements only slightly heigher then B. Sigma set to 0
+;
+
+PRO fileval2_test,Fname,valvv,state
+common val_header, header
+common init_parameter,idl_path,data_path,eph_path,res_path,eve_path,spl_int,fre_int,log_path
+
+;stop
+cd,data_path[0]
+;***************************************************************
+pI=3.1415926535898						;Declare Pi to 12 demical places.
+opt=32.0                                ;lowpass B+dB to remove dB
+sam1=6.0                                ;lowpass dB to remove phase due to spacecraft
+;sam2=frqs[fni]                          ;lowpass dB
+alph=70.0								;alpha angle for valid Ex calculations
+;****************************************************************
+
+text=strarr(1)
+NPnts=Long(0)
+ct1=0L
+header=strarr(14)
+Openr,us,FName,/get_lun             ;Open data file
+for i=0,13 do $
+  begin
+  readf,us,text
+  header[i]=text
+ct1=ct1+long(1)
+endfor
+ctEy=long(0)							;Initialize count handling arrays
+ ctEz=long(0)
+ ctdBx=long(0)
+ ctdBy=long(0)
+ ctdBz=long(0)
+ ctBx=long(0)
+ ctBy=long(0)
+ ctBz=long(0)
+;ReadF,us,text
+ct=0L
+count_rows=0L
+WIDGET_CONTROL, state.dat_info,SET_VALUE ='Extracting Telemetry Information.........',/show
+WIDGET_CONTROL, state.orb_info,SET_VALUE =string(header[0])
+While not eof(us) do $
+Begin
+ ReadF,us,text
+ ;stop
+  NPnts=NPnts+Long(1)
+  ct=ct+long(1)
+  index = fix(strmid(text(0),10,2))     ;Search for data component index
+  If index eq 0 then ctEy=ctEy+long(1)     ;Ex(mV) filtered counter
+  If index eq 1 then ctEz=ctEz+long(1)     ;Ey(mV) filtered counter
+  If index eq 2 then ctdBx=ctdBx+long(1)   ;Bx(nT) filtered counter
+  If index eq 3 then ctdBy=ctdBy+long(1)   ;By(nT) filtered counter
+  If index eq 4 then ctdBz=ctdBz+long(1)   ;Bz(nT) filtered counter
+  If index eq 5 then ctBx=ctBx+long(1)	   ;Bx(nT) unfiltered counter
+  If index eq 6 then ctBy=ctBy+long(1) 	   ;By(nT) unfiltered counter
+  If index eq 7 then ctBz=ctBz+long(1)     ;Bz(nT) unfiltered counter
+  count_rows = count_rows + long(1)        ;Counter for total No. of rows in data
+If (count_rows mod 30000) eq 0 then $
+begin
+WIDGET_CONTROL, state.dat_info,SET_VALUE =string(count_rows)+' data rows counted'
+end
+If (count_rows mod 40000) eq 0 then $
+WIDGET_CONTROL, state.dat_info,SET_VALUE ='Extracting Telemetry Information.........'
+endwhile
+
+WIDGET_CONTROL, state.dat_info,SET_VALUE =string(ctBy)+' in Bfields '+string(ctEy)+$
+' points in Efields'
+;*************************************************************************************
+;*********************************************************************************
+;Output to screen info about data
+;
+PRINT,'Data points counter complete'
+WIDGET_CONTROL, state.text,SET_VALUE ='Data points counter complete',/show,/append
+print,'Total number of data rows in the File:',count_rows
+WIDGET_CONTROL, state.text,SET_VALUE ='Total number of data rows in the File:'+string(count_rows),/show,/append
+
+WIDGET_CONTROL, state.text,SET_VALUE ='Number of Data Points Bx(High pass filtered):'+string(ctdBx),/show,/append
+print,'Number of Data Points Bx(High pass filtered):',ctdBx
+
+print,'Number of Data Points Ey:',ctEy
+WIDGET_CONTROL, state.text,SET_VALUE ='Number of Data Points Ey:'+string(ctEy),/show,/append
+;
+;*************************************************************************
+;Testing number of points
+;
+Print,'Testing number of data points'
+WIDGET_CONTROL, state.text,SET_VALUE ='Testing number of data points',/show,/append
+
+tem1=long(0)
+tem2=long(0)
+tem3=long(0)
+tem4=long(0)
+;stop
+if (ctdBx NE ctBx) or (ctEy NE ctEz) then $
+	begin
+print,'Number of data points in either E or B components not equal'
+ if ctdBx GT ctBx then $
+	 begin
+	 tem1 = ctdBx mod ctBx
+	 print,'dB has ',fix(tem1),' points more than B+dB'
+ endif
+ if ctdBx LT ctBx then $
+ 	 begin
+ 	 tem2 = ctBx mod ctdBx
+	 print,'B+dB has ',fix(tem2),' points more than dB'
+ endif
+ if ctEy GT ctEz then $
+	 begin
+	 tem3 = ctEy mod ctEz
+	 print,'Ey has ',fix(tem3),' points more than Ez'
+ endif
+ if ctEy LT ctEz then $
+ 	 begin
+ 	 tem4 = ctEz mod ctEy
+	 print,'Ez has ',fix(tem4),' points more than Ey'
+	 ;	Result = DIALOG_MESSAGE(string('Ez has',format='(A6)')$
+	 ;	+string(tem4,format='(I2)')+string(' more points then Ey'))
+ endif
+endif
+;stop
+;******************************************************************************
+;Declare and initialize data handling arrays
+;
+Ey = fltarr(ctEy)
+Ez = fltarr(ctEz)
+dBx = fltarr(ctdBx)
+dBy = fltarr(ctdBy)
+dBz = fltarr(ctdBz)
+Bx = fltarr(ctBx)
+By = fltarr(ctBy)
+Bz = fltarr(ctBz)
+Btime = LonArr(ctdBx)
+Etime=LonArr(ctEy)
+k=long(0)                               ;Declare initalized data position index
+count0=long(0)                          ;Declare initialized data counters
+count1=long(0)
+count2=long(0)
+count3=long(0)
+count4=long(0)
+count5=long(0)
+count6=long(0)
+count7=long(0)
+;
+;*********************************************************************************
+;*********************************************************************************
+Point_Lun,us,0
+for i=0,13 do $
+  begin
+  readf,us,text
+  endfor
+ WIDGET_CONTROL, state.val_info,SET_VALUE =string(' ')
+ WIDGET_CONTROL, state.dat_info,SET_VALUE ='Begining to read in data file.............'
+While (NOT EOF(us)) DO $            	 ;Loop to find each data value
+  BEGIN
+  readf,us,text                        ;Reads entire data row
+  index = fix(strmid(text(0),10,2))      ;Find data component index
+  data = float(strmid(text(0),13,14))    ;Find data
+  dattme = Long(strmid(text(0),0,10))    ;Find time
+if index EQ 0 then $					 ;Beginning of if statements to select data value and type
+ begin									 ;Data type is selected according to index
+  Ey[count0] = data
+  Etime[count0]=dattme
+  count0=count0+long(1)
+ endif
+ if index EQ 1 then $
+ begin
+  Ez[count1] = data
+  count1=count1+long(1)
+ endif
+ if index EQ 2 then $
+ begin
+  dBx[count2] = data
+  Btime[count2]=dattme
+  count2=count2+long(1)
+ ; stop
+ endif
+ if index EQ 3 then $
+ begin
+  dBy[count3] = data
+  count3=count3+long(1)
+ endif
+ if index EQ 4 then $
+ begin
+  dBz[count4] = data
+  count4=count4+long(1)
+ endif
+ if index EQ 5 then $
+ begin                                  ;
+  Bx[count5] = data
+  count5=count5+long(1)
+ endif
+ if index EQ 6 then $
+ begin
+  By[count6] = data
+  count6=count6+long(1)
+ endif
+ if index EQ 7 then $
+ begin
+  Bz[count7] = data
+  count7=count7+long(1)
+ endif
+ k = k + long(1)
+ If(k EQ 10000) then $
+ WIDGET_CONTROL, state.dat_info,SET_VALUE ='PLEASE BE PATIENT THIS MAY TAKE A WHILE'
+ If (k EQ 20000) then $
+ WIDGET_CONTROL, state.dat_info,SET_VALUE ='Checking progress.......................'
+ If (k mod 30000) eq 0 then $
+ WIDGET_CONTROL, state.dat_info,SET_VALUE ='running smoothly after:'$
+ +string(k)+' data points'
+endwhile                                 ;End of while loop, all data has been read in and type classified.
+Free_Lun,us							 ;Close data file
+;stop
+;***************************************************************************************
+;Determine sampling frequency of data
+;
+freq_16=1000.0/ABS(Btime[1]-Btime[0])
+freq_32=1000.0/ABS(Etime[1]-Etime[0])
+;stop
+print,format='(a25,I0,a2)','Sample rate for B fields ',freq_16,'Hz'
+print,format='(a25,I0,a2)','Sample rate for E fields ',freq_32,'Hz'
+;
+;******************************************************************************
+WIDGET_CONTROL, state.dat_info,SET_VALUE=string(count0)+' points in each Efield '$
++'sampled at '+string(freq_32)+'Hz'
+WIDGET_CONTROL, state.val_info,SET_VALUE=string(count2)+' points in each Bfield'$
++' sampled at '+string(freq_16)+'Hz'
+;******************************************************************************
+!P.MULTI = [0,1,3]
+set_plot,'WIN'
+window,0,xsize=500,ysize=500,title='Raw Ey,dBx and Bx+dBx fields'
+plot,Etime,Ey,title=header[0],yrange=[min(Ey),max(Ey)],XStyle=1,Xticks =3,$
+XTickFormat='XTLab',xtitle ='Time (UT)',ytitle='Ey(mV)',nsum=5
+plot,Btime,dBx,yrange=[min(dBx),max(dBx)],XStyle=1,Xticks =3,$
+XTickFormat='XTLab',xtitle ='Time (UT)',ytitle='dBx (nT)',nsum=5
+plot,Btime,Bx,yrange=[min(Bx),max(Bx)],$
+XStyle=1,Xticks =3,XTickFormat='XTLab',$
+xtitle ='Time (UT)',ytitle='Bx+dBx (nT)',nsum=5
+;*******************************************************************************
+widget_control,state.file_info,set_valu='time series plotted for Ey,dbx,& Bx',/show
+
+;***********************************************************************************
+;Resample B field and E field  time tag using SPLINE
+;This is a sampling up/down from 16Hz to 32Hz.
+;
+;Print,'Resampling B field to E field time tag'
+;Print,'This may take a few minutes....... '
+;
+WIDGET_CONTROL, state.dat_info,SET_VALUE='Resample B field and E field to E time tag',/show
+WIDGET_CONTROL, state.val_info,SET_VALUE='Splining data.............................',/show
+WIDGET_CONTROL, state.text,SET_VALUE='Resample B field and E field to E time tag',/show,/append
+WIDGET_CONTROL, state.text,SET_VALUE='Splining data.............................',/show,/append
+
+;stop
+;***********************************************************************************
+;Pass data to temp variables
+;Eyy = fltarr(count2a)
+;Ezz = fltarr(count2a)
+;dBxx = fltarr(count2a)
+;dByy = fltarr(count2a)
+;dBzz = fltarr(count2a)
+;Bxx = fltarr(count2a)
+;Byy = fltarr(count2a)
+;Bzz = fltarr(count2a)
+;Etim=LonArr(count2a)
+Etim=Etime
+;Exx=Ex
+Eyy=Ey
+Ezz=Ez
+dbxx=dBx
+dbyy=dBy
+dbzz=dBz
+bxx=Bx
+byy=By
+bzz=Bz
+;stop
+;************************************************************************************
+;Declaring data structure
+
+NPnts=n_elements(Etime)
+text=strarr(1)
+valvv={ttt:lonarr(NPnts),Ex:dblarr(NPnts),Ey:dblarr(NPnts),$
+Ez:dblarr(NPnts),dBx:dblarr(NPnts),dBy:dblarr(NPnts),dBz:dblarr(NPnts),Bx:dblarr(NPnts),$
+By:dblarr(NPnts),Bz:dblarr(NPnts),alpha_angle:dblarr(NPnts),Sx:dblarr(NPnts),$
+Sy:dblarr(NPnts),Sz:dblarr(NPnts),PhtaSB:dblarr(NPnts)}
+;***********************************************************************************
+;Pass temp values to structure
+valvv.ttt=Etim       ;Store time data in array ttt
+;valvv.Ex[i]=Exx
+valvv.Ey=Eyy
+valvv.Ez=Ezz
+valvv.dBx=dbxx
+valvv.dBy=dbyy
+valvv.dBz=dbzz
+valvv.Bx=bxx
+valvv.By=byy
+valvv.Bz=bzz
+;
+;*******************************************************************************
+;Retrun temp memory back to heap
+Btime=0.
+Etime=0.
+Exx=0.
+Eyy=0.
+Ezz=0.
+dbxx=0.
+dbyy=0.
+dbzz=0.
+bxx=0.
+byy=0.
+byy=0.
+;********************************************************************************
+WIDGET_CONTROL, state.dat_info,SET_VALUE =string(' ')
+WIDGET_CONTROL, state.file_info,SET_VALUE =string(' ')
+WIDGET_CONTROL, state.val_info,SET_VALUE =string(' ')
+cd,idl_path[0]
+!P.MULTI = 0
+END

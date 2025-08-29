@@ -1,0 +1,41 @@
+Pro Filtr2,XDat,YDat,wc,CutFreq,tmp,FiltType,LenX
+common init_parameter,idl_path,data_path,eph_path,res_path,eve_path,spl_int,fre_int,log_path
+common cm_crres,state,cm_eph,cm_val
+ pi=3.1415926535898
+ Print,'In 2nd Order Filter...'
+ WIDGET_CONTROL, state.text,SET_VALUE = 'In 2nd Order Filter...',/append
+ Wait,0.5
+ ar=float(wc*cos(tmp))  ; Pass Theta(m) as tmp
+ ai=float(wc*sin(tmp))
+ alp=float(-2*ar)
+ bet=float(ar^2+ai^2)
+ gamma=bet
+; Bilinear Transform
+ delt=1.0/(4.0+2.0*alp+bet)
+ a=2.0*(bet-4.0)*Delt
+ b=(4.0-2.0*alp+bet)*delt
+ c=gamma*delt
+ eta=2.0
+ If (FiltType eq 1) Then Begin
+  zeta=float(-cos(2.0*cutfreq*pi))
+  V1=float(a-b*Zeta)
+  V2=float(V1*Zeta)
+  psi=float(1.0/(1.0-V2))
+  c=psi*c*(1.0-zeta)^2
+  bp=psi*((zeta-a)*zeta+b)
+  a=psi*(2.0*zeta*(1.0+b)-a*(1.0+zeta^2))
+  b=bp
+  eta=-2.0
+ end
+ YDat(0)=c*XDat(0)
+ YDat(1)=-a*YDat(0)+c*(XDat(1)+eta*XDat(0))
+ For i=Long(2),Long(LenX-1) do Begin
+  V1=float(-A*YDat(i-1)-B*YDat(i-2))
+  V2=float(XDat(i)+Eta*XDat(i-1)+XDat(i-2))
+  YDat(i)=float(V1+c*V2)
+   ;print,Ydat,' ',i
+ end
+ XDat=YDat
+ For i=Long(0),Long(LenX-1) do $
+  YDat(i)=0
+end
