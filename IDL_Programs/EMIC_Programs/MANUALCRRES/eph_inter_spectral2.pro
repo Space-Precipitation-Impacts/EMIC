@@ -1,0 +1,34 @@
+;AUTHOR: Paul Manusiu
+;
+pro eph_inter_spectral2,cm_eph,cm_val,state,Dat5,XOffsp,YOffsp
+;common namm_spectral,nn,ttt								;Begin main
+common namm,nn,ttt
+common eph_inter_axis,val_inter_eph
+;stop
+;**********************************************************************************
+
+!P.charsize=1.03
+!P.ticklen=0.02
+	xyouts,[0,0,0,0],[1450,800,200,-400],['UT','MLT','L','MLAT'],/device
+	xyouts,-10,800,String(val_inter_eph[0,0],val_inter_eph[0,nn[1]],$
+	val_inter_eph[0,nn[2]],val_inter_eph[0,n_elements(val_inter_eph[0,*])-1],$
+	Format="(6X,F6.2,15X,F6.2,14X,F6.2,14X,F6.2)"),/device
+	xyouts,-10,200,String(val_inter_eph[2,0],val_inter_eph[2,nn[1]],$
+	val_inter_eph[2,nn[2]],val_inter_eph[2,n_elements(val_inter_eph[2,*])-1],$
+	Format="(6X,F6.2,15X,F6.2,14X,F6.2,14X,F6.2)"),/device
+	if val_inter_eph[1,0] LT 0.0 then $
+	begin $
+	xyouts,-10,-400,String(val_inter_eph[1,0],val_inter_eph[1,nn[1]],$
+	val_inter_eph[1,nn[2]],val_inter_eph[1,n_elements(val_inter_eph[1,*])-1],$
+	Format="(6X,F6.2,14X,F6.2,14X,F6.2,13X,F6.2)"),/device
+	end else $
+	begin
+	xyouts,-10,-400,String(val_inter_eph[1,0],val_inter_eph[1,nn[1]],$
+	val_inter_eph[1,nn[2]],val_inter_eph[1,n_elements(val_inter_eph[1,*])-1],$
+	Format="(6X,F6.2,15X,F6.2,15X,F6.2,14X,F6.2)"),/device
+	end
+!P.charsize=1.0
+;device,/close
+;set_plot,'win'
+;!P.MULTI = 0
+end

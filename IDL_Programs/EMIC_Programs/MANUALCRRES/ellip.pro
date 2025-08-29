@@ -1,0 +1,699 @@
+;  Program to Compute Single Data Channel Dyn Power
+;
+; C.L. Waters :  August, 1993
+; Canadian Network for Space Research
+; The University of Alberta
+; Edmonton, Alberta
+; Canada
+;
+; If you make changes to this code, please document them
+;
+; Modification list :
+; * Added Smoothing in the Freq. Domain { Sept, 1994, CW}
+; * Altered to take STD2IDL data format { Oct, 1995, CW }
+; * Added mouse coordinate locating { Oct, 1995, CW }
+; * Added B/W Printout support through Network LPT2 {Nov, 1996, CW}
+; * Added PICKFILE {Nov, 1996, CW}
+; * Put PSPrintBW into a separate file called PSPRINBW.PRO (Dec, 1996, CW)
+; * Blanked out high frequency end where no smoothing is done (July, 97, CW)
+; * Corrected Colin's Smoothing routine 06/13/01 and included dB power scale
+;
+;FUNCTION XTLabps,value
+; Ti=value
+; Hour=Long(Ti)/3600
+; Minute=Long(Ti-3600*Hour)/60
+; Secn=Ti-3600*Hour-60*Minute
+; RETURN,String(Hour,Minute,$
+;       Format="(I2.2,':',I2.2)")
+;end
+;
+Function YFLab,Val
+Return,String(Val,Format="(F5.1)")
+end
+;
+;FUNCTION XTLab,axis,index,value
+;Ti=value
+;Hour=Long(Ti)/3600
+;Minute=Long(Ti-3600*Hour)/60
+;RETURN,String(Hour,Minute,$
+;       Format="(I2.2,':',I2.2)")
+;end
+;
+
+;Function XTLab,Axis,Index,Value			;Function to format x axis into hours:minutes:seconds.frac
+; mSec=long(Value)
+ ;milsec=long(mSec) Mod 1000
+; seci=Long(mSec/1000)
+; secf = long(seci) mod 60
+; mni=Long(seci)/60
+; mnf = long(mni) mod 60
+; hr = Long(mni/60)
+; Return,String(hr,mnf,$
+;  Format="(I2.2,':',I2.2)")
+;end
+
+;Function Tim,Sec
+; Hr=Long(Sec)/3600
+; Mn=Long(Sec-3600*Hr)/60
+; Sc=Sec Mod 60
+;Return,String(hr,mn,sc,$
+;   Format="(I2.2,':',I2.2,':',i2.2)")
+;end
+;
+;
+; Main Program
+
+
+pro ellip,cm_eph,cm_val,state,Dat5
+Common BLK5,Ttle,XTtle,YTtle,YRngL,MxFr,MnT,MxT,Scl;,DispArr
+Common BLK1,NPnts,SInt,FFTN,DelF,NyqF,MxF,PntRes,NBlocs,NFr
+Common BLK2,SpW,SpTyp,Smo
+Common BLK3,FrRes,TRes,FBlks
+Common BLK4,MnPow,MxPow
+common Data,XDat
+common poynt,data0,data1,data2,data3
+common orbinfo,orb,orb_binfile,orb_date
+;common CPow, MxCPow, MnCPow,CPthres,CPArr
+common CPow, CPArr
+COMMON factR,FACMAX,I0MAX
+print,Dat5
+;print,'hello there!!'
+;stop
+Dat555=Dat5
+MnPow=fltarr(3)
+MxPow=fltarr(3)
+valnames=tag_names(cm_val)
+Npnts=n_elements(cm_val.(0))
+XDat=DblArr(NPnts)
+ttt=lonarr(Npnts)
+data1=dblarr(Npnts)
+data2=dblarr(npnts)
+data4=dblarr(Npnts)
+data5=dblarr(npnts)
+ttt=cm_val.(0)
+MnT=cm_val.(0)[0]
+MxT=cm_val.(0)[n_elements(cm_val.(0))-1]
+;********************************************************************************
+		data4=cm_val.(4)
+		data5=cm_val.(5)
+		data1=cm_val.(1)
+		data2=cm_val.(2)
+	;	data6=cm_val.(6)
+
+
+		DXMAX=MAX(cm_val.(4))
+		DYMAX=MAX(cm_val.(5))
+		FACMAX=abs(DYMAX*DXMAX)
+		;stop
+TArr=DblArr(NPnts)
+TArr=ttt
+;********************************************************************************
+Widget_control,state.dat_info,$
+set_value=string('Calculcating power spectra with default values......')
+StaL='CRRES ORBIT'
+Year=2001
+Month=10
+Day=10
+Hour=10
+Min=10
+Sec=10
+SInt=(ttt[1]-ttt[0])/1000.
+piI = 3.1415926535898
+u = 4*PiI
+Dte=String(Day,Month,Year,$
+ Format="(I2.2,'/',I2.2,'/',I4.2)")
+;stop
+;stop
+;
+; Set up Analysis parameters
+;
+Print,'There are ',NPnts,' Points.'
+Print,'The Sample Period is ',SInt,' Sec.'
+;Print,'Enter the FFT Analysis Length : '
+;Read,FFTN
+FFTN=800
+;PnTres=200
+;NyqF=1000.0/(2.0*SInt)
+NyqF=1.0/(2.0*SInt)
+Print,'The Nyquist is ',NyqF,' mHz'
+;Print,'Enter the Maximum Frequency Required (mHz):'
+MxF=1.0
+;Read,MxF
+;DelF=1000.0/(FFTN*SINT)
+DelF=1.0/(FFTN*SINT)
+
+NFr=Fix(MxF/DelF)+1
+;MxFr=(NFr-1)*DelF
+;stop
+Print,'The Frequency Resolution is ',DelF,' mHz.'
+TsArr=DblArr(2,FFTN)    ; Time Series Array
+TrArr=ComplexArr(2,FFTN)    ; FFT Array
+
+;*****************************************************
+TsArrP=DblArr(4,FFTN)    ;Poynt Time Series Array
+TrArrP=ComplexArr(4,FFTN)    ;Poynt FFT Array
+
+;*****************************************************
+;REPEAT Begin
+ Ans1=0
+ ;Print,'Enter the Time Resolution (Points) :'
+ ;Read,TRes
+TRes=150
+ NBlocs=Fix((NPnts-FFTN)/TRes)
+ Print,'The Time Resolution is ',TRes*SInt,' Secs'
+ Print,'You have ',NBlocs,' FFT Blocks.'
+;stop
+ ;Print,'Is this O.K ? [0=No]'
+Print,'Calcuting Spectrum.....'
+ ;Read,Ans
+Ans=1
+ Ans1=(Ans NE 0)
+; endrep $
+;UNTIL Ans1
+T=LonArr(NBlocs)
+T(0)=TArr(0);Long(Hour)*3600+Long(Min)*60+Long(Sec)
+For i=1,NBlocs-1 do $
+ T(i)=T(i-1)+Long(TRes*SInt)
+ ;stop
+;DispArr=DblArr(NBlocs,NFr)
+CPArr=DblArr(NBlocs,NFr)
+CPArr2=DblArr(NBlocs,NFr)
+CPArr3=DblArr(NBlocs,NFr)
+DisparrP=DblArr(NBlocs,NFr)
+Wsp=0.0
+;Print,'Enter the Spectral Weighting, n [f^n] : '
+;Read,WSp
+Wsp=0
+SpW=Wsp
+Wght=DblArr(NFr)
+For i=0,NFr-1 do Wght(i)=Float(i)^WSp
+WndT=1
+;Print,'Enter Windowing Option [1=Time, 2=Frequency Domain] : '
+;Read,WndT
+SpTyp=2
+WnDT=SpTyp
+If (WndT LT 1) Then WndT=1
+If (WndT GT 2) Then WndT=2
+ism=0
+Sum1=0.0
+;For i=0,FFTN-1 do TsArr(i)=XDat(i)
+If (WndT EQ 2) Then $
+Begin
+ ;Print,'Enter the amount of Smoothing [Usually 2] : '
+ ;Read,ism
+ Smo=2
+ism=Smo
+ Wnd=DblArr(2*ism+1)
+ For i=0,2*ism do $
+ Begin
+  Wnd(i)=Exp(-(Float(i-ism)/Float(ism/2.0))^2)
+  Sum1=Sum1+Wnd(i)
+ End
+ For i=0,2*ism do Wnd(i)=Wnd(i)/Sum1
+ iLFr=ism
+ LFr=iLFr*DelF
+end
+If (WndT EQ 1) Then Wnd=Hanning(FFTN)
+;
+; Major Loop Starts Here
+;
+;stop
+SpArr=DblArr(NFr+ism)   ; Double Prec. Spectral Array
+SpArr2=DblArr(NFr+ism)   ; Double Prec. Spectral Array
+SpArr3=DblArr(NFr+ism)   ; Double Prec. Spectral Array
+SpArrP=DblArr(NFr+ism)   ; Double Prec. Spectral Array
+ For i=long(0),FFTN-1 do TsArrP(0,i)=data1(i)
+ For i=long(0),FFTN-1 do TsArrP(1,i)=data5(i)
+ For i=long(0),FFTN-1 do TsArrP(2,i)=data4(i)
+ For i=long(0),FFTN-1 do TsArrP(3,i)=data2(i)
+
+ For i=0,FFTN-1 do TsArr(0,i)=data4(i)
+ For i=0,FFTN-1 do TsArr(1,i)=data5(i)
+;For i=0,FFTN-1 do TsArr(1,i)=data5(i)
+;end
+For Bloc=0,NBlocs-1 do $
+Begin
+ DTrend,TsArr(0,*),FFTN
+ DTrend,TsArr(1,*),FFTN
+ DTrend,TsArrP(0,*),FFTN     ; Call Linear Detrend
+ DTrend,TsArrP(1,*),FFTN
+ DTrend,TsArrP(2,*),FFTN     ; Call Linear Detrend
+ DTrend,TsArrP(3,*),FFTN
+
+ TrArrP(0,*)=FFT(TsArrP(0,*),-1)    ; FFT - BACKWARD so NO 1/N
+ TrArrP(1,*)=FFT(TsArrP(1,*),-1)
+ TrArrP(2,*)=FFT(TsArrP(2,*),-1)    ; FFT - BACKWARD so NO 1/N
+ TrArrP(3,*)=FFT(TsArrP(3,*),-1)
+
+ ;DTrend,TsArr(2,*),FFTN
+ If (WndT EQ 1) Then $
+ Begin
+  For jj=0,1 do $
+  Begin
+   For i=0,FFTN-1 do TsArr(jj,i)=TsArr(jj,i)*Wnd(i)  ; Hanning
+
+  end
+  For jj=0,3 do $
+  Begin
+   For i=0,FFTN-1 do TsArrP(jj,i)=TsArrP(jj,i)*Wnd(i)  ; Hanning
+
+  end
+
+ end
+Poynt=complexarr(n_elements(TrArrP(1,*)))
+ ;CP=fltarr(n_elements(TrArr(1,*)))
+;stop
+ for yy=long(0), n_elements(TrArrP(1,*)) -long(1) do $
+ 	begin
+ 		Poynt[yy]=(10./u)*[TrArrP(0,yy)*conj(TrArrP(1,yy))-TrArrP(2,yy)*conj(TrArrP(3,yy))]
+ ;		CP[yy]=(10./u)*TrArr(1,yy)*conj(TrArr(3,yy))
+ endfor
+ V2=Float(FFTN)
+  For i=long(0),NFr-1 do $
+  	Begin
+  		V1=0.5*double(Poynt(i))
+  		SpArrP(i)=V1;/(V2*V2)
+  ;		CP[i]=Cp[i]/(V2*V2)
+  end
+
+ ;TrArr(0,*)=FFT(TsArr(0,*),1)
+ ;TrArr(1,*)=FFT(TsArr(1,*),1)
+ TrArr1=FFT(TsArr(0,*),1)
+ TrArr2=FFT(TsArr(1,*),1)
+
+Sxy     = TrArr1*conj(TrArr2)
+Sxx     = double(TrArr1)*conj(TrArr1)
+Syy     = double(TrArr2)*conj(TrArr2)
+Sxytrans = Sxx + Syy
+
+;If abs(Phd) LT 0.01 Then $
+;Ellip=0.0
+;If abs(Phd) GE 0.01 Then $
+
+Ellip=fltarr(FFTN)
+Azi = fltarr(FFTN)
+pol=fltarr(FFTN)
+CP=fltarr(n_elements(TrArr(1,*)))
+; for yy=0, n_elements(TrArr(1,*)) -1 do $
+; 	begin
+; 		CP[yy]=TrArr(0,yy)*conj(TrArr(1,yy))
+; endfor
+
+;pol=SQRT((Sxx-Syy)^2+4*ABS(Sxy)^2)/Sxytrans ) & pol=0
+; for yy=0, n_elements(TrArr1) -1 do $
+; 	begin
+; 	pol[yy]=SQRT((Sxx[0,yy]-Syy[0,yy])^2+4*ABS(Sxy[0,yy])^2)/Sxytrans[0,yy]
+;end
+;stop
+ for yy=0, n_elements(TrArr1) -1 do $
+ 	begin
+ 	pol[yy]=SQRT((Sxx[0,yy]-Syy[0,yy])^2+4*ABS(Sxy[0,yy])^2)/Sxytrans[0,yy]
+	;if pol[yy] GT 0.8 then $
+	;begin
+
+ 	Ellip[yy]=0.5*ASin(-2.0*Imaginary(Sxy[0,yy])/sqrt((Sxx[0,yy]-Syy[0,yy])^2+4.0*(double(Sxy[0,yy])^2+imaginary(Sxy[0,yy])^2)) )
+;	stop
+	If abs(1-abs(tan(Ellip[yy]))) lt 0.01 Then $
+	Azi[yy]=90
+	If abs(1-abs(tan(Ellip[yy]))) ge 0.01 Then $
+	Azi[yy]=0.5*ATAN(2.0*double(Sxy[0,yy]),(Sxx[0,yy]-Syy[0,yy]))*180.0/!pi
+	Ellip[yy]=tan(Ellip[yy])
+	;end else $
+	;begin
+	;Azi[yy]=-1000
+	;Ellip[yy]=-1000
+	;end
+end
+;print,'Alpha_i = ',alpha_i
+;print,'Beta_i  = ',beta_i
+;print,'Ellip = ',Ellip
+;print,'Azi   = ',Azi
+;stop
+;CP=fltarr(n_elements(TrArr(1,*)))
+; for yy=0, n_elements(TrArr(1,*)) -1 do $
+; 	begin
+; 		CP[yy]=TrArr(0,yy)*conj(TrArr(1,yy))
+; endfor
+ For i=0,NFr-1 do $
+	Begin
+  		V1=(abs(Sxy[i]));^2.
+  		V2=Float(FFTN)
+  		SpArr(i)=Ellip[i]
+		SpArr2(i)=Azi[i]
+  		Sparr3(i)=V1/(V2*V2) ;Units or nT^2/Hz
+ end
+;stop
+;*********************************************************
+ ;If (WndT EQ 1) Then $   ; Time Domain Window
+ ;Begin
+ ; For i=0,NFr-1 do $
+ ; Begin;
+;	if CPArr(Bloc,i) NE -100 then $
+;   CPArr(Bloc,i)=SpArr(i)*Wght(i);
+;	if CPArr2(Bloc,i) NE -100 then $
+;   CPArr2(Bloc,i)=SpArr2(i)*Wght(i)
+;   CPArr3(Bloc,i)=SpArr3(i)*Wght(i)
+  ;For i=0,iLFr-1 do CPArr(Bloc,i)=abs(CP(i))*Wght(i)
+; end      ; end of If WndT = 1
+;end
+;********************************************************
+ If (WndT EQ 2) Then $   ; Frequency Domain Window
+ Begin
+ For i=0,iLFr-1 do $
+  Begin
+  	if CPArr(Bloc,i) NE -100 then $
+   CPArr(Bloc,i)=SpArr(i)*Wght(i)
+   	if CPArr2(Bloc,i) NE -100 then $
+   CPArr2(Bloc,i)=SpArr2(i)*Wght(i)
+   CPArr3(Bloc,i)=SpArr3(i)*Wght(i)
+	  If (CPArr3(Bloc,i) LT 1e-6) Then CPArr3(Bloc,i)=1e-6
+	 ; If (CPArr2(Bloc,i) LT 1e-6) Then CPArr2(Bloc,i)=1e-6
+    ;  CPArr(Bloc,i)=20*ALOG10(CPArr(Bloc,i))
+  end
+  ;****************************************************************
+  For i=0,iLFr-1 do DispArrP(Bloc,i)=SpArrP(i)*Wght(i)
+  ;For i=0,iLFr-1 do CPArr(Bloc,i)=abs(CP(i))*Wght(i)
+  For i=NFr-1-ism,NFr-1 do DispArrP(Bloc,i)=SpArrP(i)*Wght(i)
+  ;****************************************************************
+  ;For i=NFr-1-2*ism,NFr-1 do CPArr(Bloc,i)=abs(CP(i))*Wght(i)
+ For i=iLFr,NFr-1-ism do $
+  Begin
+   DispArrP(Bloc,i)=0.0
+   ;CPArr(Bloc,i)=0.0
+   Js=i-ism
+   Je=i+ism
+   iWn=-1
+   For j=Js,Je do $
+   Begin
+    iWn=iWn+1
+    DispArrP(Bloc,i)=DispArrP(Bloc,i)+Wnd(iWn)*SpArrP(j)
+	;CPArr(Bloc,i)=CPArr(Bloc,i)+Wnd(iWn)*abs(CP(j))
+   end    ; end of J loop
+   DispArrP(Bloc,i)=DispArrP(Bloc,i)*Wght(i)
+   ;CPArr(Bloc,i)=CPArr(Bloc,i)*Wght(i)
+  end     ; end of I loop
+
+  For i=NFr-1-ism,NFr-1 do $  ;top frequency end
+  Begin
+  	if CPArr(Bloc,i) NE -100 then $
+   CPArr(Bloc,i)=SpArr(i)*Wght(i)
+   	if CPArr2(Bloc,i) NE -100 then $
+   CPArr2(Bloc,i)=SpArr2(i)*Wght(i)
+     If (CPArr3(Bloc,i) LT 1e-6) Then CPArr3(Bloc,i)=1e-6
+  ;    If (CPArr2(Bloc,i) LT 1e-6) Then CPArr2(Bloc,i)=1e-6
+
+    ; CPArr(Bloc,i)=20*ALOG10(CPArr(Bloc,i))
+  end
+  For i=iLFr,NFr-1-ism do $
+  Begin
+  	if CPArr(Bloc,i) NE -100 then $
+   CPArr(Bloc,i)=0.0
+   	if CPArr2(Bloc,i) NE -100 then $
+    CPArr2(Bloc,i)=0.0
+    CPArr3(Bloc,i)=0.0
+   Js=i-ism
+   Je=i+ism
+   iWn=-1
+   For j=Js,Je do $
+   Begin
+    iWn=iWn+1
+    if CPArr(Bloc,i) NE -100 then $
+    CPArr(Bloc,i)=CPArr(Bloc,i)+Wnd(iWn)*SpArr(j)
+	if CPArr2(Bloc,i) NE -100 then $
+    CPArr2(Bloc,i)=CPArr2(Bloc,i)+Wnd(iWn)*SpArr2(j)
+    CPArr3(Bloc,i)=CPArr3(Bloc,i)+Wnd(iWn)*SpArr3(j)
+   end    ; end of J loop
+   if CPArr(Bloc,i) NE -100 then $
+   CPArr(Bloc,i)=CPArr(Bloc,i)*Wght(i)
+   if CPArr2(Bloc,i) NE -100 then $
+   CPArr2(Bloc,i)=CPArr2(Bloc,i)*Wght(i)
+   CPArr3(Bloc,i)=CPArr3(Bloc,i)*Wght(i)
+		If (CPArr3(Bloc,i) LT 1e-6) Then CPArr3(Bloc,i)=1e-6
+;		If (CPArr2(Bloc,i) LT 1e-6) Then CPArr2(Bloc,i)=1e-6
+   	;	CPArr(Bloc,i)=20*ALog10(CPArr(Bloc,i))
+
+  end     ; end of I loop
+ end      ; end of If Freq Domain Filt.
+ Posn=long((long(Bloc+1))*TRes)
+ ;For j=0,FFTN-1 do TsArr(j)=XDat(Posn+j) ; New Data
+ For i=long(0),FFTN-1 do TsArr(0,i)=data4(Posn+i)
+ For i=long(0),FFTN-1 do TsArr(1,i)=data5(Posn+i)
+ For i=long(0),FFTN-long(1) do TsArrP(0,i)=data1(Posn+i)
+ For i=long(0),FFTN-long(1) do TsArrP(1,i)=data5(Posn+i)
+ For i=long(0),FFTN-long(1) do TsArrP(2,i)=data4(Posn+i)
+ For i=long(0),FFTN-long(1) do TsArrP(3,i)=data2(Posn+i)
+End    ; end Bloc Loop
+;
+;**********************************************************
+Set_Plot,'WIN'
+!P.multi=[0,1,4]
+Erase
+Window,1,XSize=700,YSize=650
+
+;Poynting Flux Spectral Plot
+;
+ Device,Decomposed=0
+   ;13
+
+
+
+;**********************************************************
+;stop
+;Set_Plot,'WIN'
+;!P.multi=[0,1,3]
+;Erase
+;Window,1,XSize=700,YSize=650
+
+print,TRes
+MnnCPRng=Min(CPArr3)
+MxxCPRng=Max(CPArr3)
+fac=(FACMAX)/max(CPArr3)
+;print,fac
+;fac=7.1
+CPArr3=fac*CPArr3
+MnCPRng=Min(CPArr3)
+MxCPRng=Max(CPArr3)
+;stop
+;MxxRng=Max(DispArr)
+
+CPthres=MnCPRng;+0.001*(MxCPRng-MnCPRng)
+;if abs(MxCPRng) GE abs(MnCPRng) then $
+;MnCPRng=-MxCPRng else $
+;MxCPRng=abs(MnCPRng)
+;*********************************************************************************
+CPArr3=10*Alog(CPArr3)
+;*********************************************************************************
+MnCPRng=Min(CPArr3)
+MxCPRng=Max(CPArr3)
+index = where(CPArr3 LT -20.0, countw)
+
+CPArr2[index]=-100
+CPArr[index]=-100
+;Disparr=fltarr(3)
+DispArr=DblArr(NBlocs,NFr,4)
+;Disparr[*,*,1]=CParr
+;Disparr[*,*,2]=CParr2
+;Disparr[*,*,3]=CParr3
+;Disparr[*,*,0]=DisParrP
+
+Disparr[*,*,0]=CParr
+Disparr[*,*,1]=CParr2
+Disparr[*,*,2]=CParr3
+Disparr[*,*,3]=DisParrP*7.1;/3.1
+
+;vMnRng=Min(DispArr[*,*,3])
+
+;vMxRng=Max(DispArr[*,*,3])
+;if abs(vMxRng) GE abs(vMnRng) then $
+;vMnRng=-vMxRng else $
+;vMxRng=abs(vMnRng)
+;print,vMxrng
+
+
+ MnRng=fltarr(4)
+ MxRng=fltarr(4)
+;stop
+;
+;
+Ttle=strarr(4)
+Datt5=strarr(4)
+datt5[0]=Dat5
+datt5[1]='Azimuthal'
+datt5[2]='CrossPower'
+datt5[3]='Poynting Vector'
+
+Ttle[0]='Orbit'+orb+' '+orb_date+' '+Datt5[0]+' Spectrum'
+Ttle[1]='Orbit'+orb+' '+orb_date+' '+Datt5[1]+' Spectrum'
+Ttle[2]='Orbit'+orb+' '+orb_date+' BXY '+Datt5[2]+' Spectrum'
+Ttle[3]='Orbit'+orb+' '+orb_date+' Sz '+Datt5[3]+' Spectrum'
+
+ XTtle='Time (UT)'
+ YTtle='Frequency (Hz)'
+ YRngL=0
+ Scl=1
+
+;
+Py1=[0.3,0.3,0.3,0.3]
+Py2=[1.0,1.0,1.0,1.0]
+Px1=[0.05,0.05,0.05,0.05]
+Px2=[1.,1.,1.,1.]
+RRge=fltarr(1,1)
+;RRge=[-1.0,1.0,0]
+;RRge=[-1.0,1.0,0]
+for q=0,3 do $
+begin
+
+
+ PAgn=0
+ ;MnRng[q]=Min(DispArr[*,*,q])
+ ;MxRng[q]=Max(DispArr[*,*,q])
+ Device,Decomposed=0
+ ;*****************************************************************************************
+  MnPow=fltarr(4)
+MxPow=fltarr(4)
+
+if  q EQ 3 then $
+begin
+  LoadCT,17
+
+ TVLCT,r,g,b,/get
+ r(127)=255
+ g(127)=255
+ b(127)=255
+ r(128)=255
+ g(128)=255
+ b(128)=255
+ r(126)=255
+ g(126)=255
+ b(126)=255
+
+;
+ for ii=0,127 do $
+  begin
+   r(255-ii)=128+ii
+ end
+ tvlct,r,g,b
+
+end
+
+ if q LT 2 then $
+ begin
+
+  LoadCT,11
+ TVLCT,r,g,b,/get
+  for ii=1,120 do $
+  begin
+  b(ii)=0;0;-ii;2*ii;2*ii;0;ii
+  r(ii)=255-2*ii
+  g(ii)=ii;2*ii
+end
+
+ for ii=103,127 do $
+  begin
+  b(ii)=0;0;+ii
+  r(ii)=0;;0;255-2*ii
+  g(ii)=2*ii
+end
+
+for ii=128,154 do $
+  begin
+  b(ii)=0;+;0;+ii
+  r(ii)=0;0;255-2*ii
+  g(ii)=255-fix(ii/5)
+end
+
+
+  for ii=154,254 do $
+  begin
+  b(ii)=ii;0;2*ii;0;ii
+  r(ii)=255-2*ii;-50;0;255-2*ii
+  g(ii)=255-2*ii
+ end
+  tvlct,r,g,b
+end
+
+if q EQ 2 then $
+begin
+ LoadCT,13
+ TVLCT,r,g,b,/get
+ tvlct,r,g,b
+end
+
+;************************************************************************
+; Ttle='Orbit'+orb+' '+orb_date+' BXY '+Dat5+' Spectrum'
+; XTtle='Time (UT)'
+; YTtle='Frequency (Hz)'
+; YRngL=0
+; Scl=1
+; stop
+; DYNTV_crres,CPArr,Title=Ttle,YTitle=YTtle,$
+; XRange=[Min(ttt[0]),Max(ttt[Npnts-1])],YRange=[YRngL,MxF],$
+; Scale=Scl,Range=[-1.0,1.0],Aspect=1.5,ymargin=10.5,dat5=dat5
+if q EQ 0 then $
+begin
+MnRng[0]=-1.
+MxRng[0]=1.
+end
+
+if q EQ 1 then $
+begin
+MnRng[1]=-90.
+MxRng[1]=90.
+end
+
+if q EQ 2 then $
+begin
+MnRng[2]=-30.;MnRng[2]
+MxRng[2]=5.;MxRng[2]
+end
+
+if q EQ 3 then $
+begin
+MnRng[3]=Min(DispArrP)
+print,'hiiii',MnRng[3]
+MxRng[3]=Max(DispArrP)
+print,'hi',MxRng[3]
+if abs(MxRng[0]) GE abs(MnRng[0]) then $
+MnRng[3]=-MxRng[0] else $
+MxRng[3]=abs(MnRng[0])
+end
+
+!P.charsize=1
+ DYNTV_crres1,DisPArr[*,*,q],Title=Ttle[q],YTitle=YTtle,$
+ XRange=[Min(ttt[0]),Max(ttt[Npnts-1])],YRange=[YRngL,MxF],$
+ Scale=Scl,Range=[MnRng[q],MxRng[q]],Aspect=5.0,dat5=dat5,$
+ Px1=Px1[q],Px2=Px2[q],Py1=Py1[q],Py2=Py2[q];,dat5=dat5
+ print,MnRng[q]
+print,MxRng[q]
+;  stop
+ Widget_control,state.dat_info,$
+ set_value=string('Use the spectral widget if you wish to re-plot')
+He_cycl_freq ,state,cm_eph,cm_val,Datt5[q]
+PntRes=TRes
+MnPow[q]=MnRng[q]
+MxPow[q]=MxRng[q]
+end
+eph_inter_win_multi,cm_eph,cm_val,state,Datt5
+MxFr=MxF
+
+;stop
+;PntRes=TRes
+;MnPow=MnCPRng
+;MxPow=MxCPRng
+;He_cycl_freq ,state,cm_eph,cm_val,Dat5
+;stop
+;DPChoice3_multi,Dat555
+;stop
+
+;*********************************************************************************
+spectralps_multi_ellip,cm_eph,cm_val,state,Dat5,DispArr
+;DPChoice3_multi,Dat555
+;stop
+;!p.noerase=0
+
+;*********************************************************************************
+Print,'Finished'
+;stop
+Set_Plot,'WIN'
+
+end

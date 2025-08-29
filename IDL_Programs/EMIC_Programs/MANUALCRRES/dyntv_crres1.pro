@@ -1,0 +1,259 @@
+;+
+; ROUTINE   dyntv
+;
+; USEAGE:   dyntv,a
+;
+;           dyntv,a,title=title,xtitle=xtitle,ytitle=ytitle,$
+;                              xrange=xrange,yrange=yrange,$
+;                              scale=scale,range=range,noframe=noframe,aspect
+;
+; PURPOSE:  Display an image with provisions for
+;
+;            1. numbered color scale
+;            2. plot title
+;            3. annotated x and y axis
+;            4. simplified OPLOT capability
+;
+; INPUT    a           image quantity
+;
+; Optional keyword input:
+;
+;          title       plot title
+;
+;          xtitle      x axis title
+;
+;          ytitle      y axis title
+;
+;          xrange      array spanning entire x axis range.
+;                      NOTE:  TVIM only uses min(XRANGE) and max(XRANGE).
+;
+;          yrange      array spanning entire y axis range.
+;                      NOTE:  TVIM only uses min(YRANGE) and max(YRANGE).
+;
+;          scale       if set draw color scale.  SCALE=2 causes Log
+;                      of Y Axis
+;
+;          range       two or three element vector indicating physical
+;                      range over which to map the color scale.  The
+;                      third element of RANGE, if specified, sets the
+;                      step interval of the displayed color scale.  It
+;                      has no effect when SCALE is not set. E.g.,
+;                      RANGE=[0., 1., 0.1] will cause the entire color
+;                      scale to be mapped between the physical values
+;                      of zero and one; the step size of the displayed
+;                      color scale will be set to 0.1.
+;
+;          aspect      the x over y aspect ratio of the output image
+;                      if not set aspect is set to (size_x/size_y) of the
+;                      input image.
+;
+;          noframe     if set do not draw axis box around image
+;
+;xmargin & ymargin     if set than set x and/or y axis margin
+;
+;
+; SIDE EFFECTS:        Setting SCALE=2 changes the color scale using the
+;                      STEP_CT procedure.  The color scale may be returned
+;                      to its original state by the command, STEP_CT,/OFF
+;
+; PROCEDURE            DYNTV first determins the size of the plot data window
+;                      with a dummy call to PLOT.  When the output device is
+;                      "X", CONGRID is used to scale the image to the size of
+;                      the available data window.  Otherwise, if the output
+;                      device is Postscript, scaleable pixels are used in the
+;                      call to TV.  PUT_COLOR_SCALE draws the color scale and
+;                      PLOT draws the x and y axis and titles.
+;
+; DEPENDENCIES:        PUT_COLOR_SCALE, STEP_CT
+;
+; AUTHOR:              Colin Waters   Aug 93
+;                      Canadian Network Space Research
+;
+; MODIFICATION HISTORY
+;							By Paul Manusiu 13 March 2001 SPG Uni Newcastle Aust.
+;							Include option to shift plot so extra axis maybe
+;							plotted (xmargin & ymargin).
+;
+;							By Colin Waters & Paul Manusiu 14 March 2001 SPG Uni Newcastle
+;							Aust.
+;							Modified color to set maximum value to white
+;******************************************************************************************
+;
+
+Function XTLaba,Axis,Index,Value ;Function to format x axis into hours:minutes:seconds.frac
+ common namm,nn,ttt				 ;Reference ttt array in main, call ttt index nn
+ mSec=long(Value)
+ milsec=long(mSec) Mod 1000
+ seci=Long(mSec/1000)
+ secf = long(seci) mod 60
+ mni=Long(seci)/60
+ mnf = long(mni) mod 60
+ hr = Long(mni/60)
+ ;**********************************
+ ;Search for xtickformat index
+ ;
+ tmp1=float(msec-min(ttt))
+ tmp2=float(max(ttt)-min(ttt))
+ ind=long(tmp1/tmp2*n_elements(ttt))	;if found take ind index of ttt array
+ nn(index)=ind						;Pass ind to nn array for reference in main
+ ;
+ ;**********************************
+ Return,String(hr,mnf,$
+  Format="(I2.2,':',I2.2)")
+end
+;************************************************************************************
+;
+;begin main
+;
+pro dyntv_crres1,a,scale=scale,range=range,xrange=xrange,yrange=yrange,aspect=aspect,$
+           title=title,xtitle=xtitle,ytitle=ytitle,noframe=noframe,ymargin=ymargin,$
+           xmargin=xmargin,dat5=dat5,Px1=Px1,Px2=Px2,Py1=Py1,Py2=Py2
+            common namm,nn,ttt
+            common cm_crres,state,cm_eph,cm_val
+            ;common CPow, MxCPow, MnCPow,CPthres,CPArr
+            ttt=cm_val.(0)
+            nn=lonarr(4)
+			cm_names=tag_names(cm_val)
+
+;stop
+sz=size(a)
+nx=sz(1)
+ny=sz(2)
+nxm=nx-1
+nym=ny-1
+if keyword_set(ymargin) and keyword_set(xmargin) then $
+plot, [0,1],[0,1],/nodata,xstyle=4,ystyle=4,ymargin=ymargin,xmargin=xmargin $
+else $
+if keyword_set(xmargin) then $
+plot, [0,1],[0,1],/nodata,xstyle=4,ystyle=4,xmargin=xmargin $
+else $
+if keyword_set(ymargin) then $
+plot, [0,1],[0,1],/nodata,xstyle=4,ystyle=4,ymargin=ymargin $
+else $
+plot, [0,1],[0,1],/nodata,xstyle=4,ystyle=4
+
+px=!x.window*!d.x_vsize
+py=!y.window*!d.y_vsize
+pxx1=px(0)
+pxx2=px(1)
+pyy1=py(0)
+pyy2=py(1)
+py(0)=pyy1+py1*(pyy2-pyy1)
+py(1)=pyy1+py2*(pyy2-pyy1)
+px(0)=pxx1+px1*(pxx2-pxx1)
+px(1)=pxx1+px2*(pxx2-pxx1)
+;stop
+xsize=px(1)-px(0)
+ysize=py(1)-py(0)
+;stop
+if keyword_set(scale) then xsize=xsize-50*!d.x_vsize/600.
+if keyword_set(aspect) eq 0 then aspect=float(nx)/ny
+if xsize gt ysize*aspect then xsize=ysize*aspect else ysize=xsize/aspect
+px(1)=px(0)+xsize
+py(1)=py(0)+ysize
+;
+;
+max_color=!d.n_colors-1
+if max_color gt 256 then max_color=255
+;
+if keyword_set(title) eq 0 then title=''
+amax=float(max(a))
+amin=float(min(a))
+print, 'a      min and max  ',   amin,amax
+if keyword_set(range) eq 0 then range=[amin,amax]
+;
+;     draw color scale
+;
+if keyword_set(scale) then begin
+  s0=float(range(0))
+  s1=float(range(1))
+  if n_elements(range) eq 3 then begin
+    s2=range(2)
+    range=range(0:1)
+  endif else begin
+    rng=alog10(s1-s0)
+    if rng lt 0. then pt=fix(alog10(s1-s0)-.5) else pt=fix(alog10(s1-s0)+.5)
+    s2=10.^pt
+    tst=[.05,.1,.2,.5,1.,2.,5.,10]
+    ii=where((s1-s0)/(s2*tst) le 16)
+    s2=s2*tst(ii(0))
+  endelse
+  xs=px(1)+9*!d.x_vsize/600.
+  ys=py(0)
+  ysize=py(1)-py(0)
+endif
+;stop
+if dat5 EQ 'SX' or  dat5 EQ 'SY' or  dat5 EQ 'SZ' then $
+begin
+aa=(max_color-1)*((float(a)-range(0))/(range(1)-range(0)) > 0. < 1.)
+aa=congrid(aa,xsize,ysize,/interp,/minus_one)
+;CPArr=congrid(CPArr,xsize,ysize,/interp,/minus_one)
+;index2=where(a LE 0.001,count)
+;atemp=a[index2]
+;index3=where(atemp GE -0.001,count3)
+;aa[index3]=255
+;STOP
+;index=where(CPArr LT CPthres,count)
+;stop
+;if count NE 0 then $
+;begin
+;print,count
+;Loadct,17
+;a[index]=min(a)-10.
+;aa[index2]=255
+;end
+;stop
+if !d.name eq 'WIN' then begin
+  ;tv,congrid(aa,xsize,ysize,/interp,/minus_one),px(0),py(0)
+  tv,aa,px(0),py(0)
+  pos=[px(0),py(0),px(1),py(1)]
+endif else begin
+  pos=[px(0),py(0),px(1),py(1)]
+  tv,aa,px(0),py(0),xsize=xsize,ysize=ysize,/device
+endelse
+endif else $
+begin
+aa=(max_color-1)*((float(a)-range(0))/(range(1)-range(0)) > 0. < 1.)
+print,range(1)
+print,range(0)
+if !d.name eq 'WIN' then begin
+  tv,congrid(aa,xsize,ysize,/interp,/minus_one),px(0),py(0)
+  ;tv,aa,px(0),py(0)
+  pos=[px(0),py(0),px(1),py(1)]
+endif else begin
+  pos=[px(0),py(0),px(1),py(1)]
+  tv,aa,px(0),py(0),xsize=xsize,ysize=ysize,/device
+endelse
+endelse
+;aa=(max_color-1)*((float(a)-range(0))/(range(1)-range(0)) > 0. < 1.)
+;stop
+;
+!P.charsize=2.0
+;!X.charsize=2.0
+;!Y.charsize=2.0
+if keyword_set(scale) then pcscale,xs,ys,range,s2,ysize=ysize
+;
+if (keyword_set(xtitle) eq 0) then xtitle=''
+if (keyword_set(ytitle) eq 0) then ytitle=''
+if (keyword_set(xrange) eq 0) then $
+  xrng=[0,nxm] else xrng=[min(xrange), max(xrange)]
+if (keyword_set(yrange) eq 0) then $
+  yrng=[0,nym] else yrng=[min(yrange), max(yrange)]
+if keyword_set(noframe) then begin
+  plot,[0,0],[0,0],xstyle=5,ystyle=5,title=title,xtitle=xtitle,ytitle=ytitle, $
+       xrange=xrng,yrange=yrng,position=pos,/noerase,/device,/nodata
+endif else begin
+  If (Scale NE 2) Then begin
+  plot,[0,0],[0,0],xstyle=1,ystyle=1,title=title,xtitle=xtitle,ytitle=ytitle, $
+       xrange=xrng,yrange=yrng,position=pos,XTickFormat='XTLaba', $
+       /noerase,/device,/nodata,color=max_color,xticks=3;,xcharsize=2.0,ycharsize=2.0
+  endif else begin
+  plot_io,[0,0],[0,0],xstyle=1,ystyle=1,title=title,xtitle=xtitle,ytitle=ytitle, $
+       xrange=xrng,yrange=yrng,position=pos,XTickFormat='XTLaba', $
+       /noerase,/device,/nodata,color=max_color,xticks=3;,xcharsize=2.0,ycharsize=2.0
+  endelse
+endelse
+!P.charsize=1.0
+!X.charsize=1.0
+!Y.charsize=1.0
+end
