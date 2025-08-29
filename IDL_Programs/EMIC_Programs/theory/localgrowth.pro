@@ -1,0 +1,33 @@
+pro localgrowth
+;Calculate local growth rates for EMIC waves
+;
+;Temperature Anisotropy
+x = fltarr(1000)
+gamma = fltarr(1000)
+x(0) =0.011
+for i=1,999 do $
+x[i] = 0.0006 +x[i-1]
+
+Ap = 0.3
+
+N = 1.
+
+Bp = 1.0
+
+sigm= 100.0
+
+PI=3.14159265359
+
+a = [Ap(1-x)-x]*(1-x)^2.5*exp(-[(1-x)^3.0/(Bp*x^2.0*(1+sigm))])
+
+b = x^2.0*(1+sigm)^1.5*(2-x)
+
+gamma= (PI/Bp)^0.5*a/b
+
+for i=0,999 do $
+if gamma[i] LE 0.0 then $
+gamma[i]=abs(gamma[i])
+
+plot,x,gamma,yrange=[0.00001,0.2],xrange=[0.0,1.0],title='EMIC Growth rate',/ylog
+
+end
